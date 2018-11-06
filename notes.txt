@@ -1,0 +1,4 @@
+cd build
+source ~/emsdk/emsdk_env.sh 
+cmake -DCMAKE_TOOLCHAIN_FILE=/home/jmaloney/emsdk/emscripten/1.37.36/cmake/Modules/Platform/Emscripten.cmake ..
+make
