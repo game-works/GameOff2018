@@ -26,44 +26,49 @@
  -----------------------------------------------------------------------------
  */
 
-#include "ValhallaContext.h"
+#ifndef __SAMPLE_H__
+#define __SAMPLE_H__
+
+#include <Ogre.h>
+#include <OgreTrays.h>
+#include <OgreCameraMan.h>
+#include <OgreApplicationContext.h>
+#include <vector>
+#include "SampleContext.h"
 
 
-static Context* sampleInst = NULL;
+class EnemySample;
+class Gem;
 
 
-int main( int argc, const char* argv[] ) {
-
-	// Redirect Ogre logs
-	// Ogre::LogManager * lm = new Ogre::LogManager();
-  // lm->createLog(".", true, false, false);
-
-	try
-	{
-		sampleInst = new Context();
-		sampleInst->initApp();
-	    emscripten_set_main_loop_arg(Context::_mainLoop, sampleInst, 0, 1);
-		sampleInst->closeApp();
-        delete sampleInst;
-        sampleInst = NULL;
-	}
-	catch (std::exception& e)
-	{
-		emscripten_run_script((std::string("alert('") + e.what() + "')").c_str());
-	}
-	return 0;
-}
-
-
-extern "C"
+//
+//  Context class for the combat scenes...
+//
+class Context : public OgreBites::SampleContext
 {
-    int passAssetAsArrayBuffer(unsigned char* buf, int length) {
-        sampleInst->passAssetAsArrayBuffer(buf, length);
-        return 0;
-    }
+public:
+    Context();
 
-    int clearScene() {
-        sampleInst->clearScene();
-        return 0;
-    }
-}
+    void passAssetAsArrayBuffer(unsigned char*, int length);
+    void clearScene();
+
+    static void _mainLoop(void* target);
+private:
+    unsigned char* mBuffer;
+    Ogre::SceneNode* mNode;
+
+    void destroyMaterials( const Ogre::String& resourceGroupID );
+    void destroyTextures( const Ogre::String& resourceGroupID );
+    void unloadResource(Ogre::ResourceManager* resMgr, const Ogre::String& resourceName);
+
+    void setup();
+
+    bool mouseWheelRolled(const OgreBites::MouseWheelEvent& evt);
+
+
+    void gameLoop();
+
+    std::vector<EnemySample*> m_enemies;
+    std::vector<Gem*> m_gems;
+};
+#endif

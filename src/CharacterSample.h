@@ -30,14 +30,14 @@ public:
         mChara->addTime(evt.timeSinceLastFrame);
         return SdkSample::frameRenderingQueued(evt);
     }
-    
+
     bool keyPressed(const KeyboardEvent& evt)
     {
         // relay input events to character controller
         if (!mTrayMgr->isDialogVisible()) mChara->injectKeyDown(evt);
         return SdkSample::keyPressed(evt);
     }
-    
+
     bool keyReleased(const KeyboardEvent& evt)
     {
         // relay input events to character controller
@@ -68,7 +68,7 @@ public:
 protected:
 
     void setupContent()
-    {   
+    {
         // set background and some fog
         mViewport->setBackgroundColour(ColourValue(1.0f, 1.0f, 0.8f));
         mSceneMgr->setFog(Ogre::FOG_LINEAR, ColourValue(1.0f, 1.0f, 0.8f), 0, 15, 100);
@@ -95,7 +95,7 @@ protected:
 
         // create a floor mesh resource
         MeshManager::getSingleton().createPlane("floor", ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
-            Plane(Vector3::UNIT_Y, 0), 100, 100, 10, 10, true, 1, 10, 10, Vector3::UNIT_Z);
+            Plane(Vector3::UNIT_Y, 0), 1600, 100, 10, 10, true, 1, 10, 10, Vector3::UNIT_Z);
 
         // create a floor entity, give it a material, and place it at the origin
         Entity* floor = mSceneMgr->createEntity("Floor", "floor");
@@ -115,7 +115,7 @@ protected:
         items.push_back("Help");
         ParamsPanel* help = mTrayMgr->createParamsPanel(TL_TOPLEFT, "HelpMessage", 100, items);
         help->setParamValue("Help", "H / F1");
-        
+
 //      LogManager::getSingleton().logMessage("all done");
     }
 

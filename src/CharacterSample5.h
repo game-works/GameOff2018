@@ -3,15 +3,10 @@
 
 #include "SdkSample.h"
 #include "SinbadCharacterController4.h"
-#include "Gem.h"
-#include "EnemySample.h"
 
 
 using namespace Ogre;
 using namespace OgreBites;
-
-
-static Gem* s_gem = 0;
 
 
 class _OgreSampleClassExport Sample_Character : public SdkSample
@@ -38,9 +33,6 @@ public:
 
       // let character update animations and camera
       mChara->addTime(dt);
-      mEnemy->update(dt);
-
-      if (s_gem) s_gem->update(evt.timeSinceLastFrame);
 
       return SdkSample::frameRenderingQueued(evt);
     }
@@ -140,7 +132,6 @@ protected:
 //      LogManager::getSingleton().logMessage("creating sinbad");
         // create our character controller
         mChara = new AnimeCharacterController(mCamera);
-        mEnemy = new EnemySample(mCamera->getSceneManager());
 
 //      LogManager::getSingleton().logMessage("toggling stats");
         mTrayMgr->toggleAdvancedFrameStats();
@@ -152,10 +143,6 @@ protected:
         help->setParamValue("Help", "H / F1");
 
 //      LogManager::getSingleton().logMessage("all done");
-
-        // Test Gem
-        if (s_gem == 0)
-          s_gem = new Gem(mSceneMgr, Ogre::Vector3(5, 0.5, 0));
     }
 
     void cleanupContent()
@@ -170,7 +157,6 @@ protected:
     }
 
     AnimeCharacterController* mChara;
-    EnemySample* mEnemy;
 };
 
 #endif

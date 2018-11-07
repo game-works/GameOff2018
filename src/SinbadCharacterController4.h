@@ -47,12 +47,14 @@ public:
         setupAnimations();
     }
 
+
     void addTime(Real deltaTime)
     {
         updateBody(deltaTime);
         updateAnimations(deltaTime);
         updateCamera(deltaTime);
     }
+
 
     void injectKeyDown(const KeyboardEvent& evt)
     {
@@ -87,6 +89,7 @@ public:
         }
     }
 
+
     void injectKeyUp(const KeyboardEvent& evt)
     {
         Keycode key = evt.keysym.sym;
@@ -104,17 +107,20 @@ public:
         }
     }
 
+
     void injectMouseMove(const MouseMotionEvent& evt)
     {
         // update camera goal based on mouse movement
         updateCameraGoal(-0.05f * evt.xrel, -0.05f * evt.yrel, 0);
     }
 
+
     void injectMouseWheel(const MouseWheelEvent& evt)
     {
         // update camera goal based on mouse movement
         updateCameraGoal(0, 0, -0.05f * evt.y);
     }
+
 
     void injectMouseDown(const MouseButtonEvent& evt)
     {
@@ -126,6 +132,7 @@ public:
         //     mTimer = 0;
         // }
     }
+
 
 private:
 
@@ -227,6 +234,7 @@ private:
         }
     }
 
+
     void updateAnimations(Real deltaTime)
     {
       Real baseAnimSpeed = 1;
@@ -249,6 +257,7 @@ private:
       // apply smooth transitioning between our animations
       fadeAnimations(deltaTime);
     }
+
 
     void fadeAnimations(Real deltaTime)
     {
@@ -275,6 +284,7 @@ private:
       }
     }
 
+
     void updateCamera(Real deltaTime)
     {
         // place the camera pivot roughly at the character's shoulder
@@ -290,6 +300,7 @@ private:
         // always look at the pivot
         mCameraNode->lookAt(mCameraPivot->_getDerivedPosition(), Node::TS_PARENT);
     }
+
 
     void updateCameraGoal(Real deltaYaw, Real deltaPitch, Real deltaZoom)
     {
@@ -313,6 +324,7 @@ private:
         //     mCameraGoal->translate(0, 0, distChange, Node::TS_LOCAL);
         // }
     }
+
 
     void setBaseAnimation(AnimID id, bool reset = false)
     {
