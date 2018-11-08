@@ -32,11 +32,21 @@ public:
       setup();
     }
 
+    ~EnemySample()
+    {
+      mSceneManager->destroyEntity(mBodyEnt);
+      mSceneManager->destroySceneNode(mBodyNode);
+    }
+
+
+    const Ogre::Vector3 & getPosition() { return mBodyNode->getPosition(); }
+
 
     void setup()
     {
       // BODY
-      mBodyNode = mSceneManager->getRootSceneNode()->createChildSceneNode(Vector3(0, 10, -15));
+      mBodyNode = mSceneManager->getRootSceneNode()->createChildSceneNode(Vector3(0, 5.5, -15));
+      mBodyNode->setScale(Vector3(0.5));
       //mBodyEnt = mSceneManager->createEntity("EnemyBody", "Knight.mesh");
       mBodyEnt = mSceneManager->createEntity("EnemyBody", "Mage.mesh");
 

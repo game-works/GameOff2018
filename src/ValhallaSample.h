@@ -1,8 +1,10 @@
 #ifndef __Character_H__
 #define __Character_H__
 
-#include "SdkSample.h"
+
+#include "SdkSample.h"      // ??
 #include "SinbadCharacterController4.h"
+#include <vector>
 #include "Gem.h"
 #include "EnemySample.h"
 
@@ -11,41 +13,87 @@ using namespace Ogre;
 using namespace OgreBites;
 
 
-static Gem* s_gem = 0;
-
-
-class _OgreSampleClassExport Sample_Character : public SdkSample
+//class _OgreSampleClassExport ValhallaScene : public SdkSample
+class ValhallaScene : public SdkSample
 {
 public:
 
-    Sample_Character()
+
+    ValhallaScene()
     {
-        mInfo["Title"] = "Character";
-        mInfo["Description"] = "A demo showing 3rd-person character control and use of TagPoints.";
-        mInfo["Thumbnail"] = "thumb_char.png";
-        mInfo["Category"] = "Animation";
-        mInfo["Help"] = "Use the WASD keys to move Sinbad, and the space bar to jump. "
-            "Use mouse to look around and mouse wheel to zoom. Press Q to take out or put back "
-            "Sinbad's swords. With the swords equipped, you can left click to slice vertically or "
-            "right click to slice horizontally. When the swords are not equipped, press E to "
-            "start/stop a silly dance routine.";
     }
 
 
+    //
+    //  Frame Update
+    //
     bool frameRenderingQueued(const FrameEvent& evt)
     {
       Real dt = evt.timeSinceLastFrame;
 
-      // let character update animations and camera
+      // Let the player character update with animations and camera
       mChara->addTime(dt);
-      mEnemy->update(dt);
 
-      if (s_gem) s_gem->update(evt.timeSinceLastFrame);
+      // Update the active items
+      // ... Gems
+      for (auto i : m_gems)
+      {
+        i->update(dt);
+      }
+
+      // ... Enemies
+      for (auto i : m_enemies)
+      {
+        i->update(dt);
+      }
+
+      // Check proximity of active items
+      // ... Gems
+      for (auto i = m_gems.begin(); i != m_gems.end();)
+      {
+        Real d2 = (*i)->getPosition().squaredDistance(mChara->getPosition());
+        if (d2 < 15)
+        {
+          // Collect Gem
+          delete *i;
+          i = m_gems.erase(i);
+        }
+        else
+        {
+          ++i;
+        }
+      }
+
+      // ... Enemies
+      for (auto i = m_enemies.begin(); i != m_enemies.end();)
+      {
+        Real d2 = (*i)->getPosition().squaredDistance(mChara->getPosition());
+        if (d2 < 25)
+        {
+          // Kill enemy, leave a gem
+          SceneManager* sm = mCamera->getSceneManager();
+          m_gems.push_back(new Gem(sm, (*i)->getPosition()));
+          delete *i;
+
+          i = m_enemies.erase(i);
+        }
+        else
+        {
+          ++i;
+        }
+      }
+
+      // Check Enemy Spawn potential
+      Real x = Ogre::Math::RangeRandom(-5.0, 5.0);
+
 
       return SdkSample::frameRenderingQueued(evt);
     }
 
 
+    //
+    //  Input
+    //
     bool keyPressed(const KeyboardEvent& evt)
     {
         // relay input events to character controller
@@ -80,7 +128,9 @@ public:
         return SdkSample::mousePressed(evt);
     }
 
+
 protected:
+
 
     void setupContent()
     {
@@ -137,26 +187,30 @@ protected:
         floor->setCastShadows(false);
         mSceneMgr->getRootSceneNode()->attachObject(floor);
 
-//      LogManager::getSingleton().logMessage("creating sinbad");
+        //      LogManager::getSingleton().logMessage("creating sinbad");
         // create our character controller
         mChara = new AnimeCharacterController(mCamera);
-        mEnemy = new EnemySample(mCamera->getSceneManager());
 
-//      LogManager::getSingleton().logMessage("toggling stats");
+        //      LogManager::getSingleton().logMessage("toggling stats");
         mTrayMgr->toggleAdvancedFrameStats();
 
-//      LogManager::getSingleton().logMessage("creating panel");
+        //      LogManager::getSingleton().logMessage("creating panel");
         StringVector items;
         items.push_back("Help");
         ParamsPanel* help = mTrayMgr->createParamsPanel(TL_TOPLEFT, "HelpMessage", 100, items);
         help->setParamValue("Help", "H / F1");
 
-//      LogManager::getSingleton().logMessage("all done");
+        //      LogManager::getSingleton().logMessage("all done");
 
-        // Test Gem
-        if (s_gem == 0)
-          s_gem = new Gem(mSceneMgr, Ogre::Vector3(5, 0.5, 0));
+
+            //
+            // Game Setup
+            //
+            SceneManager* sm = mCamera->getSceneManager();
+            m_gems.push_back(new Gem(sm, Ogre::Vector3(15, 15, 0)));
+            m_enemies.push_back(new EnemySample(sm));
     }
+
 
     void cleanupContent()
     {
@@ -169,8 +223,14 @@ protected:
         MeshManager::getSingleton().remove("floor", ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
     }
 
+
+    //
+    //  Elements of the scene
+    //
+
     AnimeCharacterController* mChara;
-    EnemySample* mEnemy;
+    std::vector<EnemySample*> m_enemies;
+    std::vector<Gem*> m_gems;
 };
 
 #endif

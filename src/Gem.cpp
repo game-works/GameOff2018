@@ -1,21 +1,31 @@
 #include "Gem.h"
 
 
-Gem::Gem(Ogre::SceneManager* m_scene, const Ogre::Vector3& position)
+Gem::Gem(Ogre::SceneManager* scene, const Ogre::Vector3& position)
 {
+  m_scene = scene;
   m_sceneNode = m_scene->getRootSceneNode()->createChildSceneNode(position);
   m_position = position;
   m_velocity = Ogre::Vector3(0, 8, 0);
 
-  m_entity = m_scene->createEntity("Gem", "Gem.mesh");
+  m_entity = m_scene->createEntity("Gem.mesh");
   m_sceneNode->attachObject(m_entity);
 
+  Ogre::SceneNode* lsn = m_sceneNode->createChildSceneNode(Ogre::Vector3(0, 1, 0));
+  Ogre::Light* light = m_scene->createLight();
+  light->setType(Ogre::Light::LT_POINT);
+  light->setDiffuseColour(0, 0, 0.25);
+  light->setSpecularColour(0, 0, 0.5);
+  light->setCastShadows(false);
+  lsn->attachObject(light);
 }
 
 
 Gem::~Gem()
 {
-
+  m_scene->destroySceneNode(m_sceneNode);
+  m_scene->destroyEntity(m_entity);
+  //m_scene->destroyLight(m_entity);
 }
 
 

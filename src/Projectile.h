@@ -4,12 +4,12 @@
 #include <Ogre.h>
 
 
-class Gem
+class Projectile
 {
 public:
 
-  Gem(Ogre::SceneManager* m_scene, const Ogre::Vector3& position);
-  ~Gem();
+  Projectile(Ogre::SceneManager* m_scene, const Ogre::Vector3& position, const Ogre::Vector3& target);
+  ~Projectile();
 
   void update(float dt);
 
@@ -30,4 +30,6 @@ protected:
   Ogre::Light* m_light;
 
   bool m_stationary = false;
+
+  float m_lifetime = 100.f;
 };

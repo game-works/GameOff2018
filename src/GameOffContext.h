@@ -29,13 +29,18 @@
 #ifndef __SAMPLE_H__
 #define __SAMPLE_H__
 
+
 #include <Ogre.h>
 #include <OgreTrays.h>
 #include <OgreCameraMan.h>
 #include <OgreApplicationContext.h>
-
+#include "ValhallaSample.h"
 #include "SampleContext.h"
 
+
+//
+//  Context class for the combat scenes...
+//
 class Context : public OgreBites::SampleContext
 {
 public:
@@ -56,5 +61,8 @@ private:
     void setup();
 
     bool mouseWheelRolled(const OgreBites::MouseWheelEvent& evt);
+
 };
+
+
 #endif

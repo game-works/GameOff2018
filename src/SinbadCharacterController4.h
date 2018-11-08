@@ -6,9 +6,12 @@
 #include "Animation.hpp"
 #include <stdio.h>
 #include <iostream>
+#include "Projectile.h" // Move this to actionmanager?
+
 
 using namespace Ogre;
 using namespace OgreBites;
+
 
 #define CHAR_HEIGHT 5
 #define CAM_HEIGHT 2           // height of camera above character's center of mass
@@ -42,10 +45,14 @@ public:
       mBaseAnimID(ANIM_NONE),
       mTopAnimID(ANIM_NONE)
     {
-        setupBody(cam->getSceneManager());
-        setupCamera(cam);
-        setupAnimations();
+      mSceneMgr = cam->getSceneManager();
+      setupBody(cam->getSceneManager());
+      setupCamera(cam);
+      setupAnimations();
     }
+
+
+    const Ogre::Vector3 & getPosition() { return mBodyNode->getPosition(); }
 
 
     void addTime(Real deltaTime)
@@ -53,6 +60,9 @@ public:
         updateBody(deltaTime);
         updateAnimations(deltaTime);
         updateCamera(deltaTime);
+
+        for (auto i : m_projectiles)
+          i->update(deltaTime);
     }
 
 
@@ -131,6 +141,14 @@ public:
         //     else if (evt.button == BUTTON_RIGHT) setTopAnimation(ANIM_SLICE_HORIZONTAL, true);
         //     mTimer = 0;
         // }
+
+        if (mSceneMgr)
+          m_projectiles.push_back(
+            new Projectile(
+              mSceneMgr,
+              mBodyNode->getPosition(),
+              mBodyNode->getPosition() + Vector3(1, 0, 0) )
+          );
     }
 
 
@@ -293,7 +311,7 @@ private:
         // move the camera smoothly to the goal
         //Vector3 goalOffset = mCameraGoal->_getDerivedPosition() - mCameraNode->getPosition();
         float dist = 42;
-        float height = 9;
+        float height = 36;
         Vector3 goalOffset = (mCameraPivot->getPosition() + Vector3::UNIT_Z * dist  + Vector3::UNIT_Y * height) - mCameraNode->getPosition();
         mCameraNode->translate(goalOffset * deltaTime * 9.0f);
 
@@ -365,6 +383,9 @@ private:
     Vector3 mGoalDirection;     // actual intended direction in world-space
     Real mVerticalVelocity;     // for jumping
     Real mTimer;                // general timer to see how long animations have been playing
+
+    SceneManager* mSceneMgr = 0;    // Added
+    std::vector<Projectile*> m_projectiles;
 };
 
 #endif

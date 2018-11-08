@@ -29,15 +29,20 @@
 #include <OgreZip.h>
 
 #include "SamplePlugin.h"
-#include "CharacterSample4.h"
+#include "ValhallaSample.h"
+#include "EnemySample.h"
+#include "Gem.h"
 
 #include <emscripten/html5.h>
-#include "Context.h"
+#include "GameOffContext.h"
+
 
 Context::Context()
-    :   OgreBites::SampleContext("OGRE Emscripten Sample"), mBuffer(NULL), mNode(NULL)
+    :   OgreBites::SampleContext("GameOff 2018"), mBuffer(NULL), mNode(NULL)
 {
+
 }
+
 
 bool Context::mouseWheelRolled(const OgreBites::MouseWheelEvent& evt) {
     OgreBites::MouseWheelEvent _evt = evt;
@@ -46,10 +51,11 @@ bool Context::mouseWheelRolled(const OgreBites::MouseWheelEvent& evt) {
     return OgreBites::SampleContext::mouseWheelRolled(evt);
 }
 
+
 void Context::_mainLoop(void* target)
 {
-    Context* thizz = static_cast<Context*>(target);
-    if (thizz->mRoot->endRenderingQueued())
+  Context* thizz = static_cast<Context*>(target);
+  if (thizz->mRoot->endRenderingQueued())
 	{
 	    emscripten_cancel_main_loop();
 	}
@@ -73,6 +79,7 @@ void Context::_mainLoop(void* target)
             emscripten_pause_main_loop();
 	    }
     }
+
 }
 
 
@@ -85,6 +92,7 @@ void Context::unloadResource(Ogre::ResourceManager* resMgr, const Ogre::String& 
     rPtr->unload();
     resMgr->remove(resourceName, "General");
 }
+
 
 void Context::destroyMaterials( const Ogre::String& resourceGroupID )
 {
@@ -123,6 +131,7 @@ void Context::destroyMaterials( const Ogre::String& resourceGroupID )
 
 }
 
+
 void Context::destroyTextures( const Ogre::String& resourceGroupID )
 {
     try
@@ -155,6 +164,7 @@ void Context::destroyTextures( const Ogre::String& resourceGroupID )
     }
 
 }
+
 
 void Context::clearScene()
 {
@@ -192,7 +202,9 @@ void Context::clearScene()
     }
 }
 
-void Context::passAssetAsArrayBuffer(unsigned char* arr, int length) {
+
+void Context::passAssetAsArrayBuffer(unsigned char* arr, int length)
+{
 
     try {
 
@@ -218,12 +230,14 @@ void Context::passAssetAsArrayBuffer(unsigned char* arr, int length) {
 
 }
 
-void Context::setup() {
+
+void Context::setup()
+{
     OgreBites::ApplicationContext::setup();
     mWindow = getRenderWindow();
     addInputListener(this);
 
-    mCurrentSample = new Sample_Character();
+    mCurrentSample = new ValhallaScene();
     mCurrentSample->setShaderGenerator(mShaderGenerator);
     mCurrentSample->_setup(mWindow, mFSLayer, mOverlaySystem);
 }
