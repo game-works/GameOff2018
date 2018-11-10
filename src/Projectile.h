@@ -15,6 +15,8 @@ public:
 
   const Ogre::Vector3 & getPosition() { return m_position; }
 
+  bool isStationary() { return m_stationary; }
+
 protected:
 
   int m_type;
@@ -31,5 +33,5 @@ protected:
 
   bool m_stationary = false;
 
-  float m_lifetime = 100.f;
+  float m_lifetime = 2.f;
 };

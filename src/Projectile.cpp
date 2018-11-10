@@ -6,7 +6,7 @@ Projectile::Projectile(Ogre::SceneManager* scene, const Ogre::Vector3& position,
   m_scene = scene;
   m_sceneNode = m_scene->getRootSceneNode()->createChildSceneNode(position);
   m_position = position;
-  m_velocity = -40.0 * (position - target);//.normalised();
+  m_velocity = -40.0 * (position - target).normalisedCopy();
 
 
   static Ogre::Entity* s_clone = m_scene->createEntity("Gem.mesh");
@@ -20,10 +20,16 @@ Projectile::Projectile(Ogre::SceneManager* scene, const Ogre::Vector3& position,
   Ogre::SceneNode* lsn = m_sceneNode->createChildSceneNode(Ogre::Vector3(0, 1, 0));
   Ogre::Light* light = m_scene->createLight();
   light->setType(Ogre::Light::LT_POINT);
-  light->setDiffuseColour(0.25, 0, 0);
-  light->setSpecularColour(0.5, 0, 0);
+  light->setDiffuseColour(1, 0, 0);
+  light->setSpecularColour(1, 0, 0);
   light->setCastShadows(false);
+  light->setAttenuation(
+    100, // range
+    1,  // constant
+    0.0,  // linear
+    0.021);// quadratic
   lsn->attachObject(light);
+  m_light = light;
 }
 
 
@@ -31,7 +37,7 @@ Projectile::~Projectile()
 {
   m_scene->destroySceneNode(m_sceneNode);
   m_scene->destroyEntity(m_entity);
-  //m_scene->destroyLight(m_entity);
+  m_scene->destroyLight(m_light);
 }
 
 

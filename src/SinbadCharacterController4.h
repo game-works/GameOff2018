@@ -6,7 +6,6 @@
 #include "Animation.hpp"
 #include <stdio.h>
 #include <iostream>
-#include "Projectile.h" // Move this to actionmanager?
 
 
 using namespace Ogre;
@@ -61,8 +60,6 @@ public:
         updateAnimations(deltaTime);
         updateCamera(deltaTime);
 
-        for (auto i : m_projectiles)
-          i->update(deltaTime);
     }
 
 
@@ -142,13 +139,6 @@ public:
         //     mTimer = 0;
         // }
 
-        if (mSceneMgr)
-          m_projectiles.push_back(
-            new Projectile(
-              mSceneMgr,
-              mBodyNode->getPosition(),
-              mBodyNode->getPosition() + Vector3(1, 0, 0) )
-          );
     }
 
 
@@ -385,7 +375,6 @@ private:
     Real mTimer;                // general timer to see how long animations have been playing
 
     SceneManager* mSceneMgr = 0;    // Added
-    std::vector<Projectile*> m_projectiles;
 };
 
 #endif

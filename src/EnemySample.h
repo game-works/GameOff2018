@@ -26,9 +26,10 @@ private:
 
 public:
 
-    EnemySample(SceneManager* sm)
+    EnemySample(SceneManager* sm, Vector3 pos)
     {
       mSceneManager = sm;
+      m_position = pos;
       setup();
     }
 
@@ -45,10 +46,10 @@ public:
     void setup()
     {
       // BODY
-      mBodyNode = mSceneManager->getRootSceneNode()->createChildSceneNode(Vector3(0, 5.5, -15));
+      mBodyNode = mSceneManager->getRootSceneNode()->createChildSceneNode(m_position);
       mBodyNode->setScale(Vector3(0.5));
       //mBodyEnt = mSceneManager->createEntity("EnemyBody", "Knight.mesh");
-      mBodyEnt = mSceneManager->createEntity("EnemyBody", "Mage.mesh");
+      mBodyEnt = mSceneManager->createEntity("Mage.mesh");
 
       mBodyNode->attachObject(mBodyEnt);
 
@@ -168,7 +169,7 @@ protected:
   bool mFadingOut[NUM_ANIMS];           // which animations are fading out
   Real mTimer = 0;                // general timer to see how long animations have been playing
   AnimID mBaseAnimID = ANIM_IDLE;                   // current base (full- or lower-body) animation
-
+  Vector3 m_position;
 };
 
 #endif

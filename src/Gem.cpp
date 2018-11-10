@@ -14,10 +14,16 @@ Gem::Gem(Ogre::SceneManager* scene, const Ogre::Vector3& position)
   Ogre::SceneNode* lsn = m_sceneNode->createChildSceneNode(Ogre::Vector3(0, 1, 0));
   Ogre::Light* light = m_scene->createLight();
   light->setType(Ogre::Light::LT_POINT);
-  light->setDiffuseColour(0, 0, 0.25);
-  light->setSpecularColour(0, 0, 0.5);
+  light->setDiffuseColour(0, 0, 1);
+  light->setSpecularColour(0, 0, 1);
   light->setCastShadows(false);
+  light->setAttenuation(
+    100, // range
+    1,  // constant
+    0.0,  // linear
+    0.021);// quadratic
   lsn->attachObject(light);
+  m_light = light;
 }
 
 
@@ -25,7 +31,7 @@ Gem::~Gem()
 {
   m_scene->destroySceneNode(m_sceneNode);
   m_scene->destroyEntity(m_entity);
-  //m_scene->destroyLight(m_entity);
+  m_scene->destroyLight(m_light);
 }
 
 

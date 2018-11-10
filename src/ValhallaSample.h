@@ -3,10 +3,15 @@
 
 
 #include "SdkSample.h"      // ??
-#include "SinbadCharacterController4.h"
 #include <vector>
+
+// Player Character
+#include "SinbadCharacterController4.h"
+
+// Active Items
 #include "Gem.h"
 #include "EnemySample.h"
+#include "Projectile.h"
 
 
 using namespace Ogre;
@@ -29,64 +34,25 @@ public:
     //
     bool frameRenderingQueued(const FrameEvent& evt)
     {
+
+              // Find Cursor Position
+
+              float width = (float) mCamera->getViewport()->getActualWidth(); // viewport width
+              float height = (float) mCamera->getViewport()->getActualHeight(); // viewport height
+              float x = m_mouseX / width;
+              float y = m_mouseY / height;
+              Ray ray = mCamera->getCameraToViewportRay(x, y);
+              //Ray ray = mTrayMgr->getCursorRay(mCamera);
+              Plane plane = Plane(Vector3::UNIT_Y, 0);
+              auto intersects = ray.intersects(plane);
+              if (intersects.first)
+              {
+                cursorPos = ray.getPoint(intersects.second);
+                cursorPos.y = mChara->getPosition().y;
+              }
+
       Real dt = evt.timeSinceLastFrame;
-
-      // Let the player character update with animations and camera
-      mChara->addTime(dt);
-
-      // Update the active items
-      // ... Gems
-      for (auto i : m_gems)
-      {
-        i->update(dt);
-      }
-
-      // ... Enemies
-      for (auto i : m_enemies)
-      {
-        i->update(dt);
-      }
-
-      // Check proximity of active items
-      // ... Gems
-      for (auto i = m_gems.begin(); i != m_gems.end();)
-      {
-        Real d2 = (*i)->getPosition().squaredDistance(mChara->getPosition());
-        if (d2 < 15)
-        {
-          // Collect Gem
-          delete *i;
-          i = m_gems.erase(i);
-        }
-        else
-        {
-          ++i;
-        }
-      }
-
-      // ... Enemies
-      for (auto i = m_enemies.begin(); i != m_enemies.end();)
-      {
-        Real d2 = (*i)->getPosition().squaredDistance(mChara->getPosition());
-        if (d2 < 25)
-        {
-          // Kill enemy, leave a gem
-          SceneManager* sm = mCamera->getSceneManager();
-          m_gems.push_back(new Gem(sm, (*i)->getPosition()));
-          delete *i;
-
-          i = m_enemies.erase(i);
-        }
-        else
-        {
-          ++i;
-        }
-      }
-
-      // Check Enemy Spawn potential
-      Real x = Ogre::Math::RangeRandom(-5.0, 5.0);
-
-
+      updateActiveItems(dt);
       return SdkSample::frameRenderingQueued(evt);
     }
 
@@ -112,6 +78,10 @@ public:
     {
         // Relay input events to character controller.
         if (!mTrayMgr->isDialogVisible()) mChara->injectMouseMove(evt);
+
+        m_mouseX = evt.x;
+        m_mouseY = evt.y;
+
         return SdkSample::mouseMoved(evt);
     }
 
@@ -125,6 +95,16 @@ public:
     {
         // Relay input events to character controller.
         if (!mTrayMgr->isDialogVisible()) mChara->injectMouseDown(evt);
+
+        // Action
+        //if (mSceneMgr)
+        m_projectiles.push_back(
+          new Projectile(
+            mCamera->getSceneManager(),
+            mChara->getPosition(),
+            cursorPos )
+        );
+
         return SdkSample::mousePressed(evt);
     }
 
@@ -206,9 +186,9 @@ protected:
             //
             // Game Setup
             //
-            SceneManager* sm = mCamera->getSceneManager();
-            m_gems.push_back(new Gem(sm, Ogre::Vector3(15, 15, 0)));
-            m_enemies.push_back(new EnemySample(sm));
+            // SceneManager* sm = mCamera->getSceneManager();
+            // m_gems.push_back(new Gem(sm, Ogre::Vector3(15, 15, 0)));
+            // m_enemies.push_back(new EnemySample(sm));
     }
 
 
@@ -224,13 +204,135 @@ protected:
     }
 
 
+    void updateActiveItems(Real dt)
+    {
+
+      // Let the player character update with animations and camera
+      mChara->addTime(dt);
+
+      // Update the active items
+      // ... Gems
+      for (auto i : m_gems)
+      {
+        i->update(dt);
+      }
+
+      // ... Enemies
+      for (auto i : m_enemies)
+      {
+        i->update(dt);
+      }
+
+      // Projectiles
+      for (auto i : m_projectiles)
+        i->update(dt);
+
+      // Check proximity of active items
+      // ... Gems
+      for (auto i = m_gems.begin(); i != m_gems.end();)
+      {
+        Real d2 = (*i)->getPosition().squaredDistance(mChara->getPosition());
+        if (d2 < 42)
+        {
+          // Collect Gem
+          delete *i;
+          i = m_gems.erase(i);
+        }
+        else
+        {
+          ++i;
+        }
+      }
+
+      // ... Enemies
+      // for (auto i = m_enemies.begin(); i != m_enemies.end();)
+      // {
+      //   Real d2 = (*i)->getPosition().squaredDistance(mChara->getPosition());
+      //   if (d2 < 25)
+      //   {
+      //     // Kill enemy, leave a gem
+      //     SceneManager* sm = mCamera->getSceneManager();
+      //     m_gems.push_back(new Gem(sm, (*i)->getPosition()));
+      //     delete *i;
+      //
+      //     i = m_enemies.erase(i);
+      //   }
+      //   else
+      //   {
+      //     ++i;
+      //   }
+      // }
+      for (auto i = m_enemies.begin(); i != m_enemies.end();)
+      {
+        for (auto j = m_projectiles.begin(); j != m_projectiles.end();)
+        {
+          Real d2 = (*i)->getPosition().squaredDistance((*j)->getPosition());
+          if (d2 < 25)
+          {
+            // Kill enemy, leave a gem
+            SceneManager* sm = mCamera->getSceneManager();
+            m_gems.push_back(new Gem(sm, (*i)->getPosition()));
+            delete *i;
+
+            i = m_enemies.erase(i);
+
+            // Remove projectile
+            delete *j;
+            j = m_projectiles.erase(j);
+          }
+          else
+          {
+            ++j;
+          }
+        }
+        if (i != m_enemies.end()) ++i; // bug?
+      }
+
+      // More projectiles... Expiration
+      for (auto j = m_projectiles.begin(); j != m_projectiles.end();)
+      {
+        if ((*j)->isStationary())
+        {
+          delete *j;
+          j = m_projectiles.erase(j);
+        }
+        else
+        {
+          ++j;
+        }
+      }
+
+      // Check Enemy Spawn potential
+      if (m_enemies.size() < 4)
+      {
+        Real t = Ogre::Math::RangeRandom(0.0, 360.0);
+        Real r = 45.0;
+        Real x = r * Ogre::Math::Cos(Ogre::Degree(t)) + mChara->getPosition().x;
+        Real y = r * Ogre::Math::Sin(Ogre::Degree(t)) + mChara->getPosition().z;
+
+        m_enemies.push_back(
+          new EnemySample(
+            mCamera->getSceneManager(),
+            Ogre::Vector3(x, 5.5, y))
+        );
+      }
+
+    }
+
+
+
     //
     //  Elements of the scene
     //
 
     AnimeCharacterController* mChara;
     std::vector<EnemySample*> m_enemies;
+    std::vector<Projectile*> m_projectiles;
     std::vector<Gem*> m_gems;
+    Vector3 cursorPos = Vector3::ZERO;
+
+    float m_mouseX = 0;
+    float m_mouseY = 0;
 };
 
 #endif
