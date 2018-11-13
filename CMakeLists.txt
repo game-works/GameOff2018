@@ -27,7 +27,7 @@ set(CMAKE_EXE_LINKER_FLAGS "--preload-file ${MEDIA_DIR}/@. -s EXPORTED_FUNCTIONS
 
 add_definitions(-s USE_SDL=2 -s WASM=1 -std=c++1z)
 
-add_executable(ogreTrees Main.cpp src/ValhallaContext.cpp src/Gem.cpp tools/Animation.cpp)
+add_executable(ogreTrees Main.cpp src/GameOffContext.cpp src/Gem.cpp src/Projectile.cpp tools/Animation.cpp)
 
 target_link_libraries(
 ogreTrees
