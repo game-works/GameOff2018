@@ -6,7 +6,7 @@
 #include <vector>
 
 // Player Character
-#include "SinbadCharacterController4.h"
+#include "SinbadCharacterController5.h"
 
 // Active Items
 #include "Gem.h"
@@ -34,6 +34,7 @@ public:
     //
     bool frameRenderingQueued(const FrameEvent& evt)
     {
+      Real dt = evt.timeSinceLastFrame;
 
               // Find Cursor Position
 
@@ -51,7 +52,33 @@ public:
                 cursorPos.y = mChara->getPosition().y;
               }
 
-      Real dt = evt.timeSinceLastFrame;
+
+              // Animated Heart
+              // mTSUAnimTimer += 0.3;
+              // int n = (int)floor(mTSUAnimTimer * 3.0) % 6;
+              static int m = 0;
+              static int n = 0;
+              m = (m + 1) % 20;
+              if (m == 0)
+              {
+                n = (n + 1) % 6;
+                // mAnimatedTSU->setTextureUScroll(0.25 +
+                //   n * 1.0 / 6.0);
+                // mAnimatedTSU->_update();
+                //mElementHeart->updateTextureGeometry();
+                //overlay->update();
+                Real a, b, c, d;
+                //((PanelOverlayElement*)mElementHeart)->getUV(a, b, c, d);
+                ((PanelOverlayElement*)mElementHeart)->setUV(
+                  ((float)n),
+                  0,
+                  ((float)(n+1)),
+                  1);
+                mElementHeart->_update();
+                //((PanelOverlayElement*)mElementHeart)->setTiling(6,1,0);
+                //mElementHeart->getMaterial()->getTechnique(0)->getPass(0)->_update();
+              }
+
       updateActiveItems(dt);
       return SdkSample::frameRenderingQueued(evt);
     }
@@ -175,20 +202,92 @@ protected:
         mTrayMgr->toggleAdvancedFrameStats();
 
         //      LogManager::getSingleton().logMessage("creating panel");
-        StringVector items;
-        items.push_back("Help");
-        ParamsPanel* help = mTrayMgr->createParamsPanel(TL_TOPLEFT, "HelpMessage", 100, items);
-        help->setParamValue("Help", "H / F1");
+        // StringVector items;
+        // items.push_back("Help");
+        // ParamsPanel* help = mTrayMgr->createParamsPanel(TL_TOPLEFT, "HelpMessage", 100, items);
+        // help->setParamValue("Help", "H / F1");
 
         //      LogManager::getSingleton().logMessage("all done");
 
 
-            //
-            // Game Setup
-            //
-            // SceneManager* sm = mCamera->getSceneManager();
-            // m_gems.push_back(new Gem(sm, Ogre::Vector3(15, 15, 0)));
-            // m_enemies.push_back(new EnemySample(sm));
+        // Interface
+        mTrayMgr->hideLogo();
+        mTrayMgr->hideBackdrop();
+
+        mTrayMgr->setTrayWidgetAlignment(TL_TOP, GHA_CENTER);
+
+        // DecorWidget* decor2 = mTrayMgr->createDecorWidget(TL_TOP, "Decor/Heart", "TrayHeart");
+        // DecorWidget* decor1 = mTrayMgr->createDecorWidget(TL_TOP, "Decor/FullMoon", "TrayMoon");
+        // ProgressBar* bar1 = mTrayMgr->createProgressBar(TL_TOPLEFT, "Bar/Heart", "Health", 300, 300);
+        // ProgressBar* bar2 = mTrayMgr->createProgressBar(TL_TOPRIGHT, "Bar/Moon", "Moon Power", 300, 300);
+
+
+        Ogre::OverlayManager& overlayManager = Ogre::OverlayManager::getSingleton();
+
+        // Create an overlay
+        overlay = overlayManager.create( "OverlayName" );
+
+        //Ogre::OverlayElement* panel1 = overlayManager.createOverlayElementFromTemplate("TrayMoon", "Panel", "Decor/Heart");
+        //Ogre::OverlayElement* panel2 = overlayManager.createOverlayElementFromTemplate("TrayMoon", "Panel", "Decor/Moon");
+        Ogre::OverlayElement* panel1 = overlayManager.createOverlayElement("Panel", "Decor/Heart");
+        Ogre::OverlayElement* panel2 = overlayManager.createOverlayElement("Panel", "Decor/Moon");
+        Ogre::OverlayElement* panelBar1a = overlayManager.createOverlayElement("Panel", "Decor/Bar1A");
+        Ogre::OverlayElement* panelBar2a = overlayManager.createOverlayElement("Panel", "Decor/Bar2A");
+        Ogre::OverlayElement* panelBar1b = overlayManager.createOverlayElement("Panel", "Decor/Bar1B");
+        Ogre::OverlayElement* panelBar2b = overlayManager.createOverlayElement("Panel", "Decor/Bar2B");
+
+        mElementHeart = panel1;
+
+        Ogre::Real offsetTop = 8.0;
+
+        panel1->setMetricsMode(GMM_PIXELS);
+        panel1->setPosition( 400 - 64, offsetTop );
+        panel1->setDimensions( 64, 64 );
+        panel1->setMaterialName( "Wolf/Heart" );
+        //panel1->getMaterial()->getTechnique(0)->getPass(0)->getTextureUnitState(0)->setTextureUScroll(0.25 + 1.0 / 6.0);
+        mAnimatedTSU = panel1->getMaterial()->getTechnique(0)->getPass(0)->getTextureUnitState(0);
+        mAnimatedTSU->setTextureUScroll(0.25);
+
+        panel2->setMetricsMode(GMM_PIXELS);
+        panel2->setPosition( 400, offsetTop );
+        panel2->setDimensions( 64, 64 );
+        panel2->setMaterialName( "Wolf/Moon" );
+
+        panelBar1a->setMetricsMode(GMM_PIXELS);
+        panelBar1a->setPosition( 400 - 264 - 64, offsetTop + 16 );
+        panelBar1a->setDimensions( 264, 32 );
+        panelBar1a->setMaterialName( "Wolf/BarBackground" );
+
+        panelBar2a->setMetricsMode(GMM_PIXELS);
+        panelBar2a->setPosition( 400 + 64, offsetTop + 16 );
+        panelBar2a->setDimensions( 264, 32 );
+        panelBar2a->setMaterialName( "Wolf/BarBackground" );
+
+        panelBar1b->setMetricsMode(GMM_PIXELS);
+        panelBar1b->setPosition( 400 - 264 - 64, offsetTop + 16 + 5 );
+        panelBar1b->setDimensions( 264, 22 );
+        panelBar1b->setMaterialName( "Wolf/BarHealth" );
+
+        panelBar2b->setMetricsMode(GMM_PIXELS);
+        panelBar2b->setPosition( 400 + 64, offsetTop + 16 + 5 );
+        panelBar2b->setDimensions( 264, 22 );
+        panelBar2b->setMaterialName( "Wolf/BarMoon" );
+
+        //panel2->setPosition( 0.5, 0.0 );
+        //panel2->setDimensions( 0.1, 0.1 );
+
+        overlay->add2D( static_cast<Ogre::OverlayContainer*>(panel1) );
+        overlay->add2D( static_cast<Ogre::OverlayContainer*>(panel2) );
+
+        overlay->add2D( static_cast<Ogre::OverlayContainer*>(panelBar1a) );
+        overlay->add2D( static_cast<Ogre::OverlayContainer*>(panelBar2a) );
+        overlay->add2D( static_cast<Ogre::OverlayContainer*>(panelBar1b) );
+        overlay->add2D( static_cast<Ogre::OverlayContainer*>(panelBar2b) );
+
+        // Show the overlay
+        overlay->show();
+
+
     }
 
 
@@ -333,6 +432,11 @@ protected:
 
     float m_mouseX = 0;
     float m_mouseY = 0;
+
+    TextureUnitState* mAnimatedTSU;
+    float mTSUAnimTimer = 0;
+    Ogre::Overlay* overlay;
+    OverlayElement* mElementHeart;
 };
 
 #endif

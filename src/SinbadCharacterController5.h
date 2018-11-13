@@ -12,7 +12,7 @@ using namespace Ogre;
 using namespace OgreBites;
 
 
-#define CHAR_HEIGHT 5
+#define CHAR_HEIGHT 6
 #define CAM_HEIGHT 2           // height of camera above character's center of mass
 #define RUN_SPEED 17           // character running speed in units per second
 #define TURN_SPEED 500.0f      // character turning in degrees per second
@@ -21,6 +21,7 @@ using namespace OgreBites;
 #define GRAVITY 90.0f          // gravity in downward units per squared second
 
 
+// WolfGirl with all animated controls from Sinbad
 class AnimeCharacterController
 {
 private:
@@ -29,13 +30,21 @@ private:
     // some of these affect separate body parts and will be blended together
     enum AnimID
     {
-        ANIM_IDLE_L,
-        ANIM_IDLE_R,
-        ANIM_PICK,
-        ANIM_JUMP,
-        ANIM_WALK,
-        NUM_ANIMS,
-        ANIM_NONE = NUM_ANIMS,
+      ANIM_IDLE_BASE,
+      ANIM_IDLE_TOP,
+      ANIM_RUN_BASE,
+      ANIM_RUN_TOP,
+      ANIM_HANDS_CLOSED,
+      ANIM_HANDS_RELAXED,
+      ANIM_DRAW_SWORDS,
+      ANIM_SLICE_VERTICAL,
+      ANIM_SLICE_HORIZONTAL,
+      ANIM_DANCE,
+      ANIM_JUMP_START,
+      ANIM_JUMP_LOOP,
+      ANIM_JUMP_END,
+      NUM_ANIMS,
+      ANIM_NONE = NUM_ANIMS
     };
 
 public:
@@ -83,16 +92,20 @@ public:
 
         else if (key == SDLK_SPACE)
         {
-            // jump if on ground
-            setBaseAnimation(ANIM_JUMP, true);
+            // // jump if on ground
+            // setBaseAnimation(ANIM_JUMP_LOOP, true);
+            // mTimer = 0;
+
+            // Toggle Weapons
+            setTopAnimation(ANIM_DRAW_SWORDS, true);
             mTimer = 0;
         }
 
         if (!mKeyDirection.isZeroLength())
         {
             // start running if not already moving and the player wants to move
-            setBaseAnimation(ANIM_WALK, true);
-            //if (mTopAnimID == ANIM_IDLE_TOP) setTopAnimation(ANIM_RUN_TOP, true);
+            setBaseAnimation(ANIM_RUN_BASE, true);
+            if (mTopAnimID == ANIM_IDLE_TOP) setTopAnimation(ANIM_RUN_TOP, true);
         }
     }
 
@@ -109,10 +122,8 @@ public:
         if (mKeyDirection.isZeroLength())
         {
             // stop running if already moving and the player doesn't want to move
-            //setBaseAnimation(ANIM_NONE);
-            setBaseAnimation(ANIM_IDLE_L);
-
-            //if (mTopAnimID == ANIM_RUN_TOP) setTopAnimation(ANIM_IDLE_TOP);
+            setBaseAnimation(ANIM_IDLE_BASE);
+            if (mTopAnimID == ANIM_RUN_TOP) setTopAnimation(ANIM_IDLE_TOP);
         }
     }
 
@@ -160,95 +171,22 @@ private:
 
         mKeyDirection = Vector3::ZERO;
         mVerticalVelocity = 0;
-/*
-        /// .....
-        Entity* sinbadEnt = sceneMgr->createEntity("Sinbad.mesh");
 
-        // Print some infos
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
+        // Create Weapons
+        // mWeapon1 = sceneMgr->createEntity("Sword_1.mesh");
+        // mWeapon2 = sceneMgr->createEntity("Sword_2.mesh");
+        mWeapon1 = sceneMgr->createEntity("Axe_3.mesh");
+        mWeapon2 = sceneMgr->createEntity("Axe_4.mesh");
+        // mWeapon1 = sceneMgr->createEntity("Sword.mesh");
+        // mWeapon2 = sceneMgr->createEntity("Sword.mesh");
 
-        for (auto i : mBodyEnt->getAllAnimationStates()->getAnimationStateIterator())
-        {
-          std::cout << i.second->getAnimationName() << std::endl;
-        }
+        // Sheathe weapons
+        mBodyEnt->attachObjectToBone("Sheath.L", mWeapon1);
+        mBodyEnt->attachObjectToBone("Sheath.R", mWeapon2);
 
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
+        mArmourHead = sceneMgr->createEntity("Barbute_lowpoly.mesh");
+        mBodyEnt->attachObjectToBone("Head", mArmourHead);
 
-        for (auto i : sinbadEnt->getAllAnimationStates()->getAnimationStateIterator())
-        {
-          std::cout << i.second->getAnimationName() << std::endl;
-        }
-
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-        std::cout << mBodyEnt->getSkeleton()->getNumAnimations() << std::endl;
-
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-
-        // Retarget Sinbad anims onto AnimeGirl
-        retargetAnimation(
-          *(sinbadEnt->getSkeleton()->getAnimation("IdleBase")),
-          *(sinbadEnt->getSkeleton()),
-          mBodyEnt->getSkeleton());
-
-        // Print some infos
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-        // AnimationState
-        for (auto i : mBodyEnt->getAllAnimationStates()->getAnimationStateIterator())
-        {
-          std::cout << i.second->getAnimationName() << std::endl;
-        }
-
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-        // AnimationState
-        for (auto i : sinbadEnt->getAllAnimationStates()->getAnimationStateIterator())
-        {
-          std::cout << i.second->getAnimationName() << std::endl;
-        }
-
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-        // Animation
-        std::cout << mBodyEnt->getSkeleton()->getNumAnimations() << std::endl;
-
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-        // mBodyEnt->addSoftwareAnimationRequest(false);
-        // mBodyEnt->getAllAnimationStates()->_notifyDirty();
-        // mBodyEnt->_updateAnimation();
-        mBodyEnt->_initialise(true);
-        // AnimationState
-        for (auto i : mBodyEnt->getAllAnimationStates()->getAnimationStateIterator())
-        {
-          std::cout << i.second->getAnimationName() << std::endl;
-        }
-
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-        for (int i = 0; i < mBodyEnt->getSkeleton()->getNumBones(); ++i)
-        {
-          std::cout << mBodyEnt->getSkeleton()->getBone(i)->getName() << std::endl;
-        }
-
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-        for (int i = 0; i < sinbadEnt->getSkeleton()->getNumBones(); ++i)
-        {
-          std::cout << sinbadEnt->getSkeleton()->getBone(i)->getName() << std::endl;
-        }
-
-        std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-
-
-        mBodyEnt->setDisplaySkeleton(true);
-        */
     }
 
 
@@ -258,8 +196,8 @@ private:
         mBodyEnt->getSkeleton()->setBlendMode(ANIMBLEND_CUMULATIVE);
 
         String animNames[NUM_ANIMS] =
-        {"IdleBase", "IdleBase", "IdleBase", "JumpLoop", "RunBase"};
-        //{"my_animation", "my_animation", "my_animation", "my_animation", "my_animation"};
+        {"IdleBase", "IdleTop", "RunBase", "RunTop", "HandsClosed", "HandsRelaxed", "DrawSwords",
+        "SliceVertical", "SliceHorizontal", "Dance", "JumpStart", "JumpLoop", "JumpEnd"};
 
         // populate our animation list
         for (int i = 0; i < NUM_ANIMS; i++)
@@ -272,8 +210,8 @@ private:
         }
 
         // start off in the idle state (top and bottom together)
-        setBaseAnimation(ANIM_IDLE_L);
-        //setTopAnimation(ANIM_IDLE_L);
+        setBaseAnimation(ANIM_IDLE_BASE);
+        setTopAnimation(ANIM_IDLE_TOP);
 
         // relax the hands since we're not holding anything
         //mAnims[ANIM_HANDS_RELAXED]->setEnabled(true);
@@ -345,11 +283,66 @@ private:
 
       mTimer += deltaTime;
 
-      if (mBaseAnimID == ANIM_JUMP)
+      //
+      // Jump?
+      //
+      if (mBaseAnimID == ANIM_JUMP_LOOP)
       {
           if (mTimer == 0)
           {
               mVerticalVelocity = JUMP_ACCEL;
+          }
+      }
+
+      //
+      //  Toggle Swords
+      //
+      if (mTopAnimID == ANIM_DRAW_SWORDS)
+      {
+          // flip the draw swords animation if we need to put it back
+          topAnimSpeed = mSwordsDrawn ? -1 : 1;
+
+          // half-way through the animation is when the hand grasps the handles...
+          if (mTimer >= mAnims[mTopAnimID]->getLength() / 2 &&
+              mTimer - deltaTime < mAnims[mTopAnimID]->getLength() / 2)
+          {
+              // so transfer the swords from the sheaths to the hands
+              mBodyEnt->detachAllObjectsFromBone();
+              mBodyEnt->attachObjectToBone(mSwordsDrawn ? "Sheath.L" : "Handle.L", mWeapon1);
+              mBodyEnt->attachObjectToBone(mSwordsDrawn ? "Sheath.R" : "Handle.R", mWeapon2);
+              // change the hand state to grab or let go
+              mAnims[ANIM_HANDS_CLOSED]->setEnabled(!mSwordsDrawn);
+              mAnims[ANIM_HANDS_RELAXED]->setEnabled(mSwordsDrawn);
+
+              // Hmmm...
+              mBodyEnt->attachObjectToBone("Head", mArmourHead);
+
+
+              // toggle sword trails
+              // if (mSwordsDrawn)
+              // {
+              //     mSwordTrail->setVisible(false);
+              //     mSwordTrail->removeNode(mWeapon1->getParentNode());
+              //     mSwordTrail->removeNode(mWeapon2->getParentNode());
+              // }
+              // else
+              // {
+              //     mSwordTrail->setVisible(true);
+              //     mSwordTrail->addNode(mWeapon1->getParentNode());
+              //     mSwordTrail->addNode(mWeapon2->getParentNode());
+              // }
+          }
+
+          if (mTimer >= mAnims[mTopAnimID]->getLength())
+          {
+              // animation is finished, so return to what we were doing before
+              if (mBaseAnimID == ANIM_IDLE_BASE) setTopAnimation(ANIM_IDLE_TOP);
+              else
+              {
+                  setTopAnimation(ANIM_RUN_TOP);
+                  mAnims[ANIM_RUN_TOP]->setTimePosition(mAnims[ANIM_RUN_BASE]->getTimePosition());
+              }
+              mSwordsDrawn = !mSwordsDrawn;
           }
       }
 
@@ -452,12 +445,40 @@ private:
     }
 
 
+    void setTopAnimation(AnimID id, bool reset = false)
+    {
+        if (mTopAnimID != ANIM_NONE)
+        {
+            // if we have an old animation, fade it out
+            mFadingIn[mTopAnimID] = false;
+            mFadingOut[mTopAnimID] = true;
+        }
+
+        mTopAnimID = id;
+
+        if (id != ANIM_NONE)
+        {
+            // if we have a new animation, enable it and fade it in
+            mAnims[id]->setEnabled(true);
+            mAnims[id]->setWeight(0);
+            mFadingOut[id] = false;
+            mFadingIn[id] = true;
+            if (reset) mAnims[id]->setTimePosition(0);
+        }
+    }
+
+
     SceneNode* mBodyNode;
     SceneNode* mCameraPivot;
     SceneNode* mCameraGoal;
     SceneNode* mCameraNode;
     Real mPivotPitch;
     Entity* mBodyEnt;
+
+    Entity* mWeapon1;
+    Entity* mWeapon2;
+    Entity* mArmourHead;
+
     AnimationState* mAnims[NUM_ANIMS];    // master animation list
     AnimID mBaseAnimID;                   // current base (full- or lower-body) animation
     AnimID mTopAnimID;                    // current top (upper-body) animation

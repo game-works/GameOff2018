@@ -53,21 +53,6 @@ public:
 
       mBodyNode->attachObject(mBodyEnt);
 
-      // INOF
-      // Print some infos
-      std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-      for (auto i : mBodyEnt->getAllAnimationStates()->getAnimationStateIterator())
-      {
-        std::cout << i.second->getAnimationName() << std::endl;
-      }
-
-      std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
-      std::cout << mBodyEnt->getSkeleton()->getNumAnimations() << std::endl;
-
-      std::cout << " - - - - - - - - - - - - - - - - " << std::endl;
-
       // ANIMATIONS
 
       mBodyEnt->getSkeleton()->setBlendMode(ANIMBLEND_CUMULATIVE);
