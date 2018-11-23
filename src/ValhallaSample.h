@@ -12,6 +12,8 @@
 #include "Gem.h"
 #include "EnemySample.h"
 #include "Projectile.h"
+#include "CoinScene.h"
+#include "Tail.h"
 
 
 using namespace Ogre;
@@ -80,6 +82,10 @@ public:
               }
 
       updateActiveItems(dt);
+      m_tail->playerP = mChara->getTailPosition();
+      m_tail->playerO = mChara->getTailOrientation();
+      m_tail->update(dt);
+      m_coinScene->update(dt);
       return SdkSample::frameRenderingQueued(evt);
     }
 
@@ -125,12 +131,15 @@ public:
 
         // Action
         //if (mSceneMgr)
-        m_projectiles.push_back(
-          new Projectile(
-            mCamera->getSceneManager(),
-            mChara->getPosition(),
-            cursorPos )
-        );
+        if (evt.button == BUTTON_RIGHT)
+        {
+          m_projectiles.push_back(
+            new Projectile(
+              mCamera->getSceneManager(),
+              mChara->getPosition(),
+              cursorPos )
+          );
+        }
 
         return SdkSample::mousePressed(evt);
     }
@@ -141,21 +150,30 @@ protected:
 
     void setupContent()
     {
+        m_coinScene = new CoinScene();
+        m_coinScene->init(mSceneMgr);
+
+        m_tail = new Tail();
+        m_tail->init(mSceneMgr);
+
         // set background and some fog
         mViewport->setBackgroundColour(ColourValue(1.0f, 1.0f, 0.8f));
         mSceneMgr->setFog(
           Ogre::FOG_LINEAR,
-          ColourValue(1.0f, 1.0f, 0.8f),
+          //ColourValue(1.0f, 1.0f, 0.8f),
+          ColourValue(0.8f, 0.8f, 1.0f),
           0,    // expDensity
           35,   // linear start
           160); // linear end
 
         // set shadow properties
-        //mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_MODULATIVE);
-        mSceneMgr->setShadowTechnique(SHADOWTYPE_STENCIL_MODULATIVE);
+        mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_MODULATIVE);
+        //mSceneMgr->setShadowTechnique(SHADOWTYPE_STENCIL_MODULATIVE);
+        mSceneMgr->setShadowTextureSettings(1024, 2);
         mSceneMgr->setShadowColour(ColourValue(0.5, 0.5, 0.5));
-        mSceneMgr->setShadowTextureSize(1024);
-        mSceneMgr->setShadowTextureCount(1);
+        //mSceneMgr->setShadowTextureSize(1024);
+        //mSceneMgr->setShadowTextureCount(1);
+        //mSceneMgr->setShadowDirectionalLightExtrusionDistance(0.25 * mSceneMgr->getShadowDirectionalLightExtrusionDistance());
 
         // disable default camera control so the character can do its own
         mCameraMan->setStyle(CS_MANUAL);
@@ -183,14 +201,15 @@ protected:
         MeshManager::getSingleton().createPlane("floor", ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
             Plane(Vector3::UNIT_Y, 0),
             320, 320, // Size
-            10, 10,     // Divs
+            40, 40,     // Divs
             true, 1,
-            20, 20,   // UV
+            1, 1,   // UV
             Vector3::UNIT_Z);
 
         // create a floor entity, give it a material, and place it at the origin
         Entity* floor = mSceneMgr->createEntity("Floor", "floor");
-        floor->setMaterialName("Examples/Rockwall");
+        //floor->setMaterialName("Examples/Rockwall");
+        floor->setMaterialName("Wolf/texture_blend");
         floor->setCastShadows(false);
         mSceneMgr->getRootSceneNode()->attachObject(floor);
 
@@ -199,7 +218,8 @@ protected:
         mChara = new AnimeCharacterController(mCamera);
 
         //      LogManager::getSingleton().logMessage("toggling stats");
-        mTrayMgr->toggleAdvancedFrameStats();
+        //mTrayMgr->toggleAdvancedFrameStats();
+        mTrayMgr->hideFrameStats();
 
         //      LogManager::getSingleton().logMessage("creating panel");
         // StringVector items;
@@ -229,6 +249,7 @@ protected:
 
         //Ogre::OverlayElement* panel1 = overlayManager.createOverlayElementFromTemplate("TrayMoon", "Panel", "Decor/Heart");
         //Ogre::OverlayElement* panel2 = overlayManager.createOverlayElementFromTemplate("TrayMoon", "Panel", "Decor/Moon");
+        Ogre::OverlayElement* panel0 = overlayManager.createOverlayElement("Panel", "Decor/0");
         Ogre::OverlayElement* panel1 = overlayManager.createOverlayElement("Panel", "Decor/Heart");
         Ogre::OverlayElement* panel2 = overlayManager.createOverlayElement("Panel", "Decor/Moon");
         Ogre::OverlayElement* panelBar1a = overlayManager.createOverlayElement("Panel", "Decor/Bar1A");
@@ -236,9 +257,18 @@ protected:
         Ogre::OverlayElement* panelBar1b = overlayManager.createOverlayElement("Panel", "Decor/Bar1B");
         Ogre::OverlayElement* panelBar2b = overlayManager.createOverlayElement("Panel", "Decor/Bar2B");
 
+        Ogre::OverlayElement* panelBarL = overlayManager.createOverlayElement("Panel", "Decor/BarL");
+        Ogre::OverlayElement* panelBarR = overlayManager.createOverlayElement("Panel", "Decor/BarR");
+
+
         mElementHeart = panel1;
 
         Ogre::Real offsetTop = 8.0;
+
+        panel0->setMetricsMode(GMM_PIXELS);
+        panel0->setPosition( 400 - 64, offsetTop );
+        panel0->setDimensions( 128, 64 );
+        panel0->setMaterialName( "Wolf/BarBackground" );
 
         panel1->setMetricsMode(GMM_PIXELS);
         panel1->setPosition( 400 - 64, offsetTop );
@@ -270,12 +300,23 @@ protected:
 
         panelBar2b->setMetricsMode(GMM_PIXELS);
         panelBar2b->setPosition( 400 + 64, offsetTop + 16 + 5 );
-        panelBar2b->setDimensions( 264, 22 );
+        panelBar2b->setDimensions( 264 / 2, 22 );
         panelBar2b->setMaterialName( "Wolf/BarMoon" );
+
+        panelBarL->setMetricsMode(GMM_PIXELS);
+        panelBarL->setPosition( 400 - 264 - 64 - 5, offsetTop + 16 );
+        panelBarL->setDimensions( 5, 32 );
+        panelBarL->setMaterialName( "Wolf/BarBackgroundL" );
+
+        panelBarR->setMetricsMode(GMM_PIXELS);
+        panelBarR->setPosition( 400 + 64 + 264, offsetTop + 16 );
+        panelBarR->setDimensions( 5, 32 );
+        panelBarR->setMaterialName( "Wolf/BarBackgroundR" );
 
         //panel2->setPosition( 0.5, 0.0 );
         //panel2->setDimensions( 0.1, 0.1 );
 
+        overlay->add2D( static_cast<Ogre::OverlayContainer*>(panel0) );
         overlay->add2D( static_cast<Ogre::OverlayContainer*>(panel1) );
         overlay->add2D( static_cast<Ogre::OverlayContainer*>(panel2) );
 
@@ -283,6 +324,8 @@ protected:
         overlay->add2D( static_cast<Ogre::OverlayContainer*>(panelBar2a) );
         overlay->add2D( static_cast<Ogre::OverlayContainer*>(panelBar1b) );
         overlay->add2D( static_cast<Ogre::OverlayContainer*>(panelBar2b) );
+        overlay->add2D( static_cast<Ogre::OverlayContainer*>(panelBarL) );
+        overlay->add2D( static_cast<Ogre::OverlayContainer*>(panelBarR) );
 
         // Show the overlay
         overlay->show();
@@ -344,23 +387,30 @@ protected:
       }
 
       // ... Enemies
-      // for (auto i = m_enemies.begin(); i != m_enemies.end();)
-      // {
-      //   Real d2 = (*i)->getPosition().squaredDistance(mChara->getPosition());
-      //   if (d2 < 25)
-      //   {
-      //     // Kill enemy, leave a gem
-      //     SceneManager* sm = mCamera->getSceneManager();
-      //     m_gems.push_back(new Gem(sm, (*i)->getPosition()));
-      //     delete *i;
-      //
-      //     i = m_enemies.erase(i);
-      //   }
-      //   else
-      //   {
-      //     ++i;
-      //   }
-      // }
+      for (auto i = m_enemies.begin(); i != m_enemies.end();)
+      {
+        Real d2 = (*i)->getPosition().squaredDistance(mChara->getPosition());
+        if (d2 < 36)
+        {
+          // Kill enemy, leave a gem
+          SceneManager* sm = mCamera->getSceneManager();
+          m_gems.push_back(new Gem(sm, (*i)->getPosition()));
+
+          // Leave a coin
+          int nk = 1 + rand() % 3;
+          for (int k = 0; k < nk; ++k)
+            m_coinScene->createCoin((*i)->getPosition());
+
+          delete *i;
+          i = m_enemies.erase(i);
+        }
+        else
+        {
+          ++i;
+        }
+      }
+
+      // Enemies vs projectiles
       for (auto i = m_enemies.begin(); i != m_enemies.end();)
       {
         for (auto j = m_projectiles.begin(); j != m_projectiles.end();)
@@ -371,8 +421,13 @@ protected:
             // Kill enemy, leave a gem
             SceneManager* sm = mCamera->getSceneManager();
             m_gems.push_back(new Gem(sm, (*i)->getPosition()));
-            delete *i;
 
+            // Leave a coin
+            int nk = 1 + rand() % 3;
+            for (int k = 0; k < nk; ++k)
+              m_coinScene->createCoin((*i)->getPosition());
+
+            delete *i;
             i = m_enemies.erase(i);
 
             // Remove projectile
@@ -402,18 +457,41 @@ protected:
       }
 
       // Check Enemy Spawn potential
-      if (m_enemies.size() < 4)
+      if (m_enemies.size() < 24)
       {
         Real t = Ogre::Math::RangeRandom(0.0, 360.0);
-        Real r = 45.0;
+        Real r = Ogre::Math::RangeRandom(45.0, 65.0);
         Real x = r * Ogre::Math::Cos(Ogre::Degree(t)) + mChara->getPosition().x;
         Real y = r * Ogre::Math::Sin(Ogre::Degree(t)) + mChara->getPosition().z;
 
-        m_enemies.push_back(
-          new EnemySample(
-            mCamera->getSceneManager(),
-            Ogre::Vector3(x, 5.5, y))
-        );
+        int k = rand() % 6;
+        if (k <= 3)
+          m_enemies.push_back(
+            new EnemySample(
+              mCamera->getSceneManager(),
+              Ogre::Vector3(x, 5.5, y),
+              "Mage.mesh",
+              "my_animation",
+              0.5)
+          );
+        if (k == 4)
+          m_enemies.push_back(
+            new EnemySample(
+              mCamera->getSceneManager(),
+              Ogre::Vector3(x, 5.5, y),
+              "Cylinder.001.mesh",
+              "Skeleton_Idle",
+              2)
+          );
+        if (k == 5)
+          m_enemies.push_back(
+            new EnemySample(
+              mCamera->getSceneManager(),
+              Ogre::Vector3(x, 5.5, y),
+              "Dragon.mesh",
+              "Dragon_Flying",
+             4)
+          );
       }
 
     }
@@ -425,6 +503,7 @@ protected:
     //
 
     AnimeCharacterController* mChara;
+    Tail* m_tail;
     std::vector<EnemySample*> m_enemies;
     std::vector<Projectile*> m_projectiles;
     std::vector<Gem*> m_gems;
@@ -437,6 +516,8 @@ protected:
     float mTSUAnimTimer = 0;
     Ogre::Overlay* overlay;
     OverlayElement* mElementHeart;
+
+    CoinScene* m_coinScene;
 };
 
 #endif

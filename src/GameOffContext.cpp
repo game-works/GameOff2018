@@ -29,9 +29,9 @@
 #include <OgreZip.h>
 
 #include "SamplePlugin.h"
-#include "ValhallaSample.h"
-#include "EnemySample.h"
-#include "Gem.h"
+#include "TownSample.h"
+// #include "EnemySample.h"
+// #include "Gem.h"
 
 #include <emscripten/html5.h>
 #include "GameOffContext.h"
@@ -237,7 +237,8 @@ void Context::setup()
     mWindow = getRenderWindow();
     addInputListener(this);
 
-    mCurrentSample = new ValhallaScene();
+    //mCurrentSample = new ValhallaScene();
+    mCurrentSample = new TownScene();
     mCurrentSample->setShaderGenerator(mShaderGenerator);
     mCurrentSample->_setup(mWindow, mFSLayer, mOverlaySystem);
 }

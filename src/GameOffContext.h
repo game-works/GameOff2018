@@ -34,7 +34,6 @@
 #include <OgreTrays.h>
 #include <OgreCameraMan.h>
 #include <OgreApplicationContext.h>
-#include "ValhallaSample.h"
 #include "SampleContext.h"
 
 

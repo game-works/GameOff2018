@@ -6,15 +6,16 @@
 #include "Animation.hpp"
 #include <stdio.h>
 #include <iostream>
+#include "Tail.h"
 
 
 using namespace Ogre;
 using namespace OgreBites;
 
 
-#define CHAR_HEIGHT 6
+#define CHAR_HEIGHT (2.75 * 30)
 #define CAM_HEIGHT 2           // height of camera above character's center of mass
-#define RUN_SPEED 17           // character running speed in units per second
+#define RUN_SPEED (17 * 15)           // character running speed in units per second
 #define TURN_SPEED 500.0f      // character turning in degrees per second
 #define ANIM_FADE_SPEED 7.5f   // animation crossfade speed in % of full weight per second
 #define JUMP_ACCEL 30.0f       // character jump acceleration in upward units per squared second
@@ -54,13 +55,32 @@ public:
       mTopAnimID(ANIM_NONE)
     {
       mSceneMgr = cam->getSceneManager();
+
       setupBody(cam->getSceneManager());
-      setupCamera(cam);
-      setupAnimations();
+
+      setupAnimations(mHumanEnt, mHumanAnims);
+      setupAnimations(mHumanClothesEnt, mHumanClothesAnims);
+      setupAnimations(mWolfEnt, mWolfAnims);
+
+      // start off in the idle state (top and bottom together)
+      setBaseAnimation(ANIM_IDLE_BASE);
+      setTopAnimation(ANIM_IDLE_TOP);
+      mSwordsDrawn = false;
+
+      m_tail = new Tail();
+      m_tail->init(mSceneMgr, this);
     }
 
 
     const Ogre::Vector3& getPosition() { return mBodyNode->getPosition(); }
+
+
+    Ogre::Vector3 getHeadPosition()
+    {
+      Ogre::Bone* bone = mBodyEnt->getSkeleton()->getBone("Head");
+      //Ogre::Bone* bone = mBodyEnt->getSkeleton()->getBone("Root");
+      return mBodyNode->_getFullTransform() * bone->_getDerivedPosition();
+    }
 
 
     Ogre::Vector3 getTailPosition()
@@ -79,12 +99,78 @@ public:
     }
 
 
+    void hybridTransform()
+    {
+      mHybridTransform = !mHybridTransform;
+
+      // Un-hold weapons and armour
+      mBodyEnt->detachAllObjectsFromBone();
+
+      // Switch the body node
+      // mBodyNode->detachObject(mBodyEnt);
+      // if (mBodyEnt == mHumanEnt) mBodyEnt = mWolfEnt;
+      // else mBodyEnt = mHumanEnt;
+      // mBodyNode->attachObject(mBodyEnt);
+
+      mBodyNode->removeChild(mBodyNodeAtt);
+      mBodyNodeAtt = mHybridTransform ? mWolfNodeAtt : mHumanNodeAtt;
+      mBodyNode->addChild(mBodyNodeAtt);
+
+      // Switch Body Entity
+      mBodyEnt = mHybridTransform ? mWolfEnt : mHumanEnt;
+
+      // Attach sheathed weapons... or drop them
+      if (mSwordsDrawn)
+      {
+
+      }
+      else
+      {
+        mBodyEnt->attachObjectToBone("Sheath.L", mWeapon1);
+        mBodyEnt->attachObjectToBone("Sheath.R", mWeapon2);
+      }
+
+      // Dress human (softbodies,,,)
+      if (mHybridTransform)
+      {
+        // dress Wolf
+      }
+      else
+      {
+        dressHuman();
+      }
+    }
+
+
+    void dressHuman()
+    {
+      // Attach Hair
+      mBodyEnt->attachObjectToBone(
+        "Head",
+        mHairEnt,
+        Ogre::Quaternion(0, 0, 1, 0),
+        Ogre::Vector3(0, 8, 0) //Ogre::Quaternion(0, 0, 1, 0) * -mBodyEnt->getSkeleton()->getBone("Head")->_getDerivedPosition()
+      );
+
+      // Armour pieces...
+    }
+
+
+    void dressWolf()
+    {
+      // Something?
+    }
+
+
     void addTime(Real deltaTime)
     {
         updateBody(deltaTime);
-        updateAnimations(deltaTime);
-        updateCamera(deltaTime);
 
+        updateAnimations(deltaTime, mHumanAnims);
+        updateAnimations(deltaTime, mHumanClothesAnims);
+        updateAnimations(deltaTime, mWolfAnims);
+
+        m_tail->update(deltaTime, this);
     }
 
 
@@ -105,6 +191,12 @@ public:
         else if (key == 'a') mKeyDirection.x = -1;
         else if (key == 's') mKeyDirection.z = 1;
         else if (key == 'd') mKeyDirection.x = 1;
+
+        else if (key == 'z')
+        {
+            // HYBRID
+            hybridTransform();
+        }
 
         else if (key == SDLK_SPACE)
         {
@@ -146,15 +238,11 @@ public:
 
     void injectMouseMove(const MouseMotionEvent& evt)
     {
-        // update camera goal based on mouse movement
-        updateCameraGoal(-0.05f * evt.xrel, -0.05f * evt.yrel, 0);
     }
 
 
     void injectMouseWheel(const MouseWheelEvent& evt)
     {
-        // update camera goal based on mouse movement
-        updateCameraGoal(0, 0, -0.05f * evt.y);
     }
 
 
@@ -184,13 +272,35 @@ private:
     void setupBody(SceneManager* sceneMgr)
     {
         // create main model
-        mBodyNode = sceneMgr->getRootSceneNode()->createChildSceneNode(Vector3::UNIT_Y * CHAR_HEIGHT);
+        mBodyNode = sceneMgr->getRootSceneNode()->createChildSceneNode();
+
+        mHumanNodeAtt = mBodyNode->createChildSceneNode(Vector3::UNIT_Y * 0);
+        //mHumanNodeAtt->setScale(Ogre::Vector3(85));
+        //mHumanNodeAtt->translate(0, -107, 0);
+
+        mWolfNodeAtt = mBodyNode->createChildSceneNode(Vector3::UNIT_Y * CHAR_HEIGHT);
+        mWolfNodeAtt->setScale(Ogre::Vector3(30));
+        //mWolfNodeAtt->translate(0, -107, 0);
+
+        mBodyNodeAtt = mHumanNodeAtt;
+        mBodyNode->removeChild(mWolfNodeAtt);
+
         //SceneNode* sn = mBodyNode->createChildSceneNode();
         //sn->setScale(Vector3(6));
-        mBodyEnt = sceneMgr->createEntity("anime_girl.002.mesh");
+        //mBodyEnt = sceneMgr->createEntity("Girl.mesh");
+        mHumanEnt = sceneMgr->createEntity("Girl.mesh");
+        mHumanClothesEnt = sceneMgr->createEntity("Girl.Clothes.mesh");
+        mWolfEnt = sceneMgr->createEntity("WereWolf.mesh");
+        mBodyEnt = mHumanEnt;
 
-        //sn->attachObject(mBodyEnt);
-        mBodyNode->attachObject(mBodyEnt);
+        mHairEnt = sceneMgr->createEntity("hair.mesh");
+
+        // Set up Human Node
+        mHumanNodeAtt->attachObject(mHumanEnt);
+        mHumanNodeAtt->attachObject(mHumanClothesEnt);
+
+        // Set up Wolf Node
+        mWolfNodeAtt->attachObject(mWolfEnt);
 
         mKeyDirection = Vector3::ZERO;
         mVerticalVelocity = 0;
@@ -198,8 +308,10 @@ private:
         // Create Weapons
         // mWeapon1 = sceneMgr->createEntity("Sword_1.mesh");
         // mWeapon2 = sceneMgr->createEntity("Sword_2.mesh");
-        mWeapon1 = sceneMgr->createEntity("Axe_3.mesh");
-        mWeapon2 = sceneMgr->createEntity("Axe_4.mesh");
+        // mWeapon1 = sceneMgr->createEntity("Axe_3.mesh");
+        // mWeapon2 = sceneMgr->createEntity("Axe_4.mesh");
+        mWeapon1 = sceneMgr->createEntity("Dagger.LoPoly.mesh");
+        mWeapon2 = sceneMgr->createEntity("Dagger.LoPoly.mesh");
         // mWeapon1 = sceneMgr->createEntity("Sword.mesh");
         // mWeapon2 = sceneMgr->createEntity("Sword.mesh");
 
@@ -207,21 +319,25 @@ private:
         mBodyEnt->attachObjectToBone("Sheath.L", mWeapon1);
         mBodyEnt->attachObjectToBone("Sheath.R", mWeapon2);
 
-        // Helmet
-        mArmourHead = sceneMgr->createEntity("Barbute_lowpoly.mesh");
-        mBodyEnt->attachObjectToBone("Head", mArmourHead);
+        // // Helmet
+        // mArmourHead = sceneMgr->createEntity("Barbute_lowpoly.mesh");
+        // mBodyEnt->attachObjectToBone("Head", mArmourHead);
+        //
+        // // Chest Plate
+        // mArmourChest = sceneMgr->createEntity("Breastplate_final_low.001.mesh");
+        // mBodyEnt->attachObjectToBone("Chest", mArmourChest);
 
-        // Chest Plate
-        mArmourChest = sceneMgr->createEntity("Breastplate_final_low.001.mesh");
-        mBodyEnt->attachObjectToBone("Chest", mArmourChest);
-
+        dressHuman();
     }
 
 
-    void setupAnimations()
+    void setupAnimations(Entity* entity, AnimationState* anims[NUM_ANIMS])
     {
         // this is very important due to the nature of the exported animations
-        mBodyEnt->getSkeleton()->setBlendMode(ANIMBLEND_CUMULATIVE);
+        std::cout << "setupAnimations" << std::endl;
+        std::cout << entity << std::endl;
+        std::cout << entity->getSkeleton() << std::endl;
+        entity->getSkeleton()->setBlendMode(ANIMBLEND_CUMULATIVE);
 
         String animNames[NUM_ANIMS] =
         {"IdleBase", "IdleTop", "RunBase", "RunTop", "HandsClosed", "HandsRelaxed", "DrawSwords",
@@ -230,43 +346,17 @@ private:
         // populate our animation list
         for (int i = 0; i < NUM_ANIMS; i++)
         {
-            mAnims[i] = mBodyEnt->getAnimationState(animNames[i]);
-            // Check existence of animation?
-            mAnims[i]->setLoop(true);
-            mFadingIn[i] = false;
-            mFadingOut[i] = false;
+          std::cout << animNames[i] << std::endl;
+          (anims)[i] = entity->getAnimationState(animNames[i]);
+          std::cout << (anims)[i] << std::endl;
+          // Check existence of animation?
+          (anims)[i]->setLoop(true);
+          mFadingIn[i] = false;
+          mFadingOut[i] = false;
         }
 
-        // start off in the idle state (top and bottom together)
-        setBaseAnimation(ANIM_IDLE_BASE);
-        setTopAnimation(ANIM_IDLE_TOP);
-
         // relax the hands since we're not holding anything
-        //mAnims[ANIM_HANDS_RELAXED]->setEnabled(true);
-
-        mSwordsDrawn = false;
-    }
-
-
-    void setupCamera(Camera* cam)
-    {
-        // create a pivot at roughly the character's shoulder
-        mCameraPivot = cam->getSceneManager()->getRootSceneNode()->createChildSceneNode();
-        // this is where the camera should be soon, and it spins around the pivot
-        mCameraGoal = mCameraPivot->createChildSceneNode(Vector3(0, 0, 15));
-        // this is where the camera actually is
-        mCameraNode = cam->getParentSceneNode();
-        mCameraNode->setPosition(mCameraPivot->getPosition() + mCameraGoal->getPosition());
-
-        mCameraPivot->setFixedYawAxis(true);
-        mCameraGoal->setFixedYawAxis(true);
-        mCameraNode->setFixedYawAxis(true);
-
-        // our model is quite small, so reduce the clipping planes
-        cam->setNearClipDistance(0.1);
-        cam->setFarClipDistance(1000);
-
-        mPivotPitch = 0;
+        (anims)[ANIM_HANDS_RELAXED]->setEnabled(true);
     }
 
 
@@ -277,8 +367,8 @@ private:
         if (mKeyDirection != Vector3::ZERO)
         {
             // calculate actually goal direction in world based on player's key directions
-            mGoalDirection += mKeyDirection.z * mCameraNode->getOrientation().zAxis();
-            mGoalDirection += mKeyDirection.x * mCameraNode->getOrientation().xAxis();
+            mGoalDirection += mKeyDirection.z * Ogre::Vector3::UNIT_Z;
+            mGoalDirection += mKeyDirection.x * Ogre::Vector3::UNIT_X;
             mGoalDirection.y = 0;
             mGoalDirection.normalise();
 
@@ -298,13 +388,18 @@ private:
             mBodyNode->yaw(Degree(yawToGoal));
 
             // move in current body direction (not the goal direction)
-            mBodyNode->translate(0, 0, deltaTime * RUN_SPEED * mAnims[mBaseAnimID]->getWeight(),
+            // HACK
+            mBodyNode->translate(
+                0,
+                0,
+                deltaTime * RUN_SPEED *
+                mHumanAnims[mBaseAnimID]->getWeight(),
                 Node::TS_LOCAL);
         }
     }
 
 
-    void updateAnimations(Real deltaTime)
+    void updateAnimations(Real deltaTime, AnimationState* mAnims[NUM_ANIMS])
     {
       Real baseAnimSpeed = 1;
       Real topAnimSpeed = 1;
@@ -343,8 +438,10 @@ private:
               mAnims[ANIM_HANDS_RELAXED]->setEnabled(mSwordsDrawn);
 
               // Hmmm... Re-apply armour items
-              mBodyEnt->attachObjectToBone("Head", mArmourHead);
-              mBodyEnt->attachObjectToBone("Chest", mArmourChest);
+              if (mHybridTransform) ;
+              else dressHuman();
+              // mBodyEnt->attachObjectToBone("Head", mArmourHead);
+              // mBodyEnt->attachObjectToBone("Chest", mArmourChest);
 
               // toggle sword trails
               // if (mSwordsDrawn)
@@ -395,11 +492,11 @@ private:
       if (mTopAnimID != ANIM_NONE) mAnims[mTopAnimID]->addTime(deltaTime * topAnimSpeed);
 
       // apply smooth transitioning between our animations
-      fadeAnimations(deltaTime);
+      fadeAnimations(deltaTime, mAnims);
     }
 
 
-    void fadeAnimations(Real deltaTime)
+    void fadeAnimations(Real deltaTime, AnimationState* mAnims[NUM_ANIMS])
     {
       for (int i = 0; i < NUM_ANIMS; i++)
       {
@@ -425,48 +522,15 @@ private:
     }
 
 
-    void updateCamera(Real deltaTime)
-    {
-        // place the camera pivot roughly at the character's shoulder
-        mCameraPivot->setPosition(mBodyNode->getPosition() + Vector3::UNIT_Y * CAM_HEIGHT);
-
-        // move the camera smoothly to the goal
-        //Vector3 goalOffset = mCameraGoal->_getDerivedPosition() - mCameraNode->getPosition();
-        float dist = 42;
-        float height = 36;
-        Vector3 goalOffset = (mCameraPivot->getPosition() + Vector3::UNIT_Z * dist  + Vector3::UNIT_Y * height) - mCameraNode->getPosition();
-        mCameraNode->translate(goalOffset * deltaTime * 9.0f);
-
-        // always look at the pivot
-        mCameraNode->lookAt(mCameraPivot->_getDerivedPosition(), Node::TS_PARENT);
-    }
-
-
-    void updateCameraGoal(Real deltaYaw, Real deltaPitch, Real deltaZoom)
-    {
-        // mCameraPivot->yaw(Degree(deltaYaw), Node::TS_PARENT);
-        //
-        // // bound the pitch
-        // if (!(mPivotPitch + deltaPitch > 25 && deltaPitch > 0) &&
-        //     !(mPivotPitch + deltaPitch < -60 && deltaPitch < 0))
-        // {
-        //     mCameraPivot->pitch(Degree(deltaPitch), Node::TS_LOCAL);
-        //     mPivotPitch += deltaPitch;
-        // }
-        //
-        // Real dist = mCameraGoal->_getDerivedPosition().distance(mCameraPivot->_getDerivedPosition());
-        // Real distChange = deltaZoom * dist;
-        //
-        // // bound the zoom
-        // if (!(dist + distChange < 8 && distChange < 0) &&
-        //     !(dist + distChange > 25 && distChange > 0))
-        // {
-        //     mCameraGoal->translate(0, 0, distChange, Node::TS_LOCAL);
-        // }
-    }
-
-
     void setBaseAnimation(AnimID id, bool reset = false)
+    {
+      setBaseAnimation(id, mHumanAnims, reset);
+      setBaseAnimation(id, mHumanClothesAnims, reset);
+      setBaseAnimation(id, mWolfAnims, reset);
+    }
+
+
+    void setBaseAnimation(AnimID id, AnimationState* mAnims[NUM_ANIMS], bool reset)
     {
         if (mBaseAnimID != ANIM_NONE)
         {
@@ -491,6 +555,14 @@ private:
 
     void setTopAnimation(AnimID id, bool reset = false)
     {
+      setTopAnimation(id, mHumanAnims, reset);
+      setTopAnimation(id, mHumanClothesAnims, reset);
+      setTopAnimation(id, mWolfAnims, reset);
+    }
+
+
+    void setTopAnimation(AnimID id, AnimationState* mAnims[NUM_ANIMS], bool reset)
+    {
         if (mTopAnimID != ANIM_NONE)
         {
             // if we have an old animation, fade it out
@@ -513,18 +585,25 @@ private:
 
 
     SceneNode* mBodyNode;
-    SceneNode* mCameraPivot;
-    SceneNode* mCameraGoal;
-    SceneNode* mCameraNode;
-    Real mPivotPitch;
+    SceneNode* mBodyNodeAtt;
+    SceneNode* mHumanNodeAtt;
+    SceneNode* mWolfNodeAtt;
     Entity* mBodyEnt;
+    Entity* mHumanEnt;
+    Entity* mHumanClothesEnt;
+    Entity* mWolfEnt;
+
+    Entity* mHairEnt;
+
 
     Entity* mWeapon1;
     Entity* mWeapon2;
     Entity* mArmourHead;
     Entity* mArmourChest;
 
-    AnimationState* mAnims[NUM_ANIMS];    // master animation list
+    AnimationState* mHumanAnims[NUM_ANIMS];    // master animation list
+    AnimationState* mHumanClothesAnims[NUM_ANIMS];    // master animation list
+    AnimationState* mWolfAnims[NUM_ANIMS];    // master animation list
     AnimID mBaseAnimID;                   // current base (full- or lower-body) animation
     AnimID mTopAnimID;                    // current top (upper-body) animation
     bool mFadingIn[NUM_ANIMS];            // which animations are fading in
@@ -536,6 +615,13 @@ private:
     Real mTimer;                // general timer to see how long animations have been playing
 
     SceneManager* mSceneMgr = 0;    // Added
+
+    bool mHybridTransform = false;
+
+    Tail* m_tail;
+
+public:
+    btRigidBody* mCharacterBody;
 };
 
 #endif

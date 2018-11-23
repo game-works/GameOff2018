@@ -26,11 +26,11 @@ private:
 
 public:
 
-    EnemySample(SceneManager* sm, Vector3 pos)
+    EnemySample(SceneManager* sm, Vector3 pos, String mesh, String anim, Real scale = 1.0)
     {
       mSceneManager = sm;
       m_position = pos;
-      setup();
+      setup(mesh, anim, scale);
     }
 
     ~EnemySample()
@@ -43,13 +43,13 @@ public:
     const Ogre::Vector3 & getPosition() { return mBodyNode->getPosition(); }
 
 
-    void setup()
+    void setup(String mesh, String anim, Real scale)
     {
       // BODY
       mBodyNode = mSceneManager->getRootSceneNode()->createChildSceneNode(m_position);
-      mBodyNode->setScale(Vector3(0.5));
+      mBodyNode->setScale(Vector3(scale));
       //mBodyEnt = mSceneManager->createEntity("EnemyBody", "Knight.mesh");
-      mBodyEnt = mSceneManager->createEntity("Mage.mesh");
+      mBodyEnt = mSceneManager->createEntity(mesh);
 
       mBodyNode->attachObject(mBodyEnt);
 
@@ -57,7 +57,7 @@ public:
 
       mBodyEnt->getSkeleton()->setBlendMode(ANIMBLEND_CUMULATIVE);
       String animNames[NUM_ANIMS] =
-      {"my_animation", "my_animation"};
+      {anim, anim};
 
       for (int i = 0; i < NUM_ANIMS; i++)
       {

@@ -17,11 +17,13 @@ Projectile::Projectile(Ogre::SceneManager* scene, const Ogre::Vector3& position,
   m_entity = s_clone->clone(s_name);
   m_sceneNode->attachObject(m_entity);
 
+  m_entity->setMaterialName("Orb2");
+
   Ogre::SceneNode* lsn = m_sceneNode->createChildSceneNode(Ogre::Vector3(0, 1, 0));
   Ogre::Light* light = m_scene->createLight();
   light->setType(Ogre::Light::LT_POINT);
-  light->setDiffuseColour(1, 0, 0);
-  light->setSpecularColour(1, 0, 0);
+  light->setDiffuseColour(0.76862745098, 0.90588235294, 0.87450980392);
+  light->setSpecularColour(0.76862745098, 0.90588235294, 0.87450980392);
   light->setCastShadows(false);
   light->setAttenuation(
     100, // range

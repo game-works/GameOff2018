@@ -11,11 +11,13 @@ Gem::Gem(Ogre::SceneManager* scene, const Ogre::Vector3& position)
   m_entity = m_scene->createEntity("Gem.mesh");
   m_sceneNode->attachObject(m_entity);
 
+  m_entity->setMaterialName("Orb1");
+
   Ogre::SceneNode* lsn = m_sceneNode->createChildSceneNode(Ogre::Vector3(0, 1, 0));
   Ogre::Light* light = m_scene->createLight();
   light->setType(Ogre::Light::LT_POINT);
-  light->setDiffuseColour(0, 0, 1);
-  light->setSpecularColour(0, 0, 1);
+  light->setDiffuseColour(1.0, 0.3568627451, 0.30588235294);
+  light->setSpecularColour(1.0, 0.3568627451, 0.30588235294);
   light->setCastShadows(false);
   light->setAttenuation(
     100, // range

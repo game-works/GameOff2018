@@ -26,7 +26,7 @@
  -----------------------------------------------------------------------------
  */
 
-#include "ValhallaContext.h"
+#include "GameOffContext.h"
 
 
 static Context* sampleInst = NULL;
