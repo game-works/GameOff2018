@@ -63,6 +63,21 @@ void Context::_mainLoop(void* target)
     {
 	    try
 	    {
+        // Viewport size HACK
+        static Real s_w = 0;
+        static Real s_h = 0;
+        Real w = thizz->mWindow->getViewport(0)->getActualWidth();
+        Real h = thizz->mWindow->getViewport(0)->getActualHeight();
+        if (w != s_w)
+        {
+          std::cout << "Viewport size changed to " << (int)w << "x" << (int)h << std::endl;
+          s_w = w;
+          s_h = h;
+
+          //thizz->mWindow->getViewport(0)->_updateDimensions();
+          thizz->mWindow->resize(w, h);
+        }
+
             if (!thizz->mRoot->renderOneFrame())
             {
                 emscripten_cancel_main_loop();

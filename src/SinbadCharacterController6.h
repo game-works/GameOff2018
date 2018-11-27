@@ -3,7 +3,6 @@
 
 #include "Ogre.h"
 #include "OgreInput.h"
-#include "Animation.hpp"
 #include <stdio.h>
 #include <iostream>
 #include "Tail.h"
@@ -73,6 +72,12 @@ public:
 
 
     const Ogre::Vector3& getPosition() { return mBodyNode->getPosition(); }
+
+
+    void setPosition(const Ogre::Vector3& p)
+    {
+      mBodyNode->setPosition(p);
+    }
 
 
     Ogre::Vector3 getHeadPosition()
