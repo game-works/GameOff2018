@@ -11,6 +11,7 @@
 #include "MessageManager.h"
 #include "Continuity.h"
 #include "ConvoManager.h"
+#include "ChickenMob.h"
 
 
 using namespace Ogre;
@@ -65,11 +66,14 @@ public:
     Real r = 300.0;
     for (auto i : mActiveItems)
     {
-      if (i->getPosition().squaredDistance(mCharacter->getPosition()) < r * r)
-          //((ActiveNPC1*)i)->m_hasConvo == true)
+      if (i->classType() == "NPC")
       {
-        //((ActiveNPC1*)i)->m_hasConvo = false;
-        mConvoManager.setConvo(((ActiveNPC1*)i)->m_convo, (ActiveNPC1*)i, mCharacter);
+        if (i->getPosition().squaredDistance(mCharacter->getPosition()) < r * r)
+            //((ActiveNPC1*)i)->m_hasConvo == true)
+        {
+          //((ActiveNPC1*)i)->m_hasConvo = false;
+          mConvoManager.setConvo(((ActiveNPC1*)i)->m_convo, (ActiveNPC1*)i, mCharacter);
+        }
       }
     }
 
@@ -91,6 +95,27 @@ public:
     if (p.z < -d) p.z = -d;
 
     mCharacter->setPosition(p);
+
+    // Lock actives to edge position
+    for (auto i : mActiveItems)
+    {
+      Vector3 p = i->getPosition();
+      r = 40.0 * 35.0;
+      Real d = 36.0 * 35.0;
+      // Circle border
+      if (p.x * p.x + p.z * p.z > r * r)
+      {
+        p *= (r * r) / (p.x * p.x + p.z * p.z);
+      }
+      // Square border
+      if (p.x > d) p.x = d;
+      if (p.x < -d) p.x = -d;
+      if (p.z > d) p.z = d;
+      if (p.z < -d) p.z = -d;
+
+      i->setPosition(p);
+    }
+
 
     // Update Camera
     //mCameraMan->getTarget()->setPosition(mCharacter->getPosition());
@@ -147,6 +172,10 @@ public:
     setupScenery();
     setupActiveItems();
     setupDialogs();
+
+    // Chicken Mob
+    ChickenMob mpb(mSceneMgr);
+    mActiveItems.push_back(mpb.spawn());
   }
 
 

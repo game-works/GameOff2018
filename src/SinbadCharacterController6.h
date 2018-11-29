@@ -12,19 +12,17 @@ using namespace Ogre;
 using namespace OgreBites;
 
 
-#define CHAR_HEIGHT (2.75 * 30)
-#define CAM_HEIGHT 2           // height of camera above character's center of mass
-#define RUN_SPEED (17 * 15)           // character running speed in units per second
-#define TURN_SPEED 500.0f      // character turning in degrees per second
-#define ANIM_FADE_SPEED 7.5f   // animation crossfade speed in % of full weight per second
-#define JUMP_ACCEL 30.0f       // character jump acceleration in upward units per squared second
-#define GRAVITY 90.0f          // gravity in downward units per squared second
-
-
 // WolfGirl with all animated controls from Sinbad
 class AnimeCharacterController
 {
 private:
+  const Real CHAR_HEIGHT = (2.75 * 30);
+  const Real CAM_HEIGHT = 2;           // height of camera above character's center of mass
+  const Real RUN_SPEED = (17 * 15);           // character running speed in units per second
+  const Real TURN_SPEED = 500.0f;      // character turning in degrees per second
+  const Real ANIM_FADE_SPEED = 7.5f;   // animation crossfade speed in % of full weight per second
+  const Real JUMP_ACCEL = 30.0f;       // character jump acceleration in upward units per squared second
+  const Real GRAVITY = 90.0f;          // gravity in downward units per squared second
 
     // all the animations our character has, and a null ID
     // some of these affect separate body parts and will be blended together

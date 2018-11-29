@@ -13,15 +13,6 @@ using namespace Ogre;
 using namespace OgreBites;
 
 
-#define CHAR_HEIGHT (2.75 * 30)
-#define CAM_HEIGHT 2           // height of camera above character's center of mass
-#define RUN_SPEED (17 * 15)           // character running speed in units per second
-#define TURN_SPEED 500.0f      // character turning in degrees per second
-#define ANIM_FADE_SPEED 7.5f   // animation crossfade speed in % of full weight per second
-#define JUMP_ACCEL 30.0f       // character jump acceleration in upward units per squared second
-#define GRAVITY 90.0f          // gravity in downward units per squared second
-
-
 // WolfGirl with all animated controls from Sinbad
 class ActiveNPC1 : public ActiveItem
 {
@@ -39,6 +30,9 @@ private:
       NUM_ANIMS,
       ANIM_NONE = NUM_ANIMS
     };
+
+    const Real ANIM_FADE_SPEED = 7.5f;   // animation crossfade speed in % of full weight per second
+    
 
 public:
 
@@ -75,6 +69,8 @@ public:
 
       updateAnimations(deltaTime, mAnims);
     }
+
+    String classType() { return "NPC"; }
 
 
 private:
