@@ -10,19 +10,32 @@ class ChickenMob
 {
 public:
 
-    ChickenMob(SceneManager* sm)
+    ChickenMob(SceneManager* sm, std::vector<ActiveItem*>* items )
     {
       mSceneMgr = sm;
+      chickens = items;
     }
 
 
-    ActiveItem* spawn()
+    void update()
     {
-      return new Chicken(mSceneMgr, Ogre::Vector3(140, 0, 104));
+      if (mChickens < 2)
+      {
+        ++mChickens;
+        spawn();
+      }
     }
 
 
-    std::vector<Chicken*> chickens;
+    void spawn()
+    {
+      Chicken* chicken = new Chicken(mSceneMgr, Ogre::Vector3(140, 0, 104));
+      chickens->push_back(chicken);
+    }
+
+
+    std::vector<ActiveItem*>* chickens;
     SceneManager* mSceneMgr;
+    int mChickens = 0;
 
 };

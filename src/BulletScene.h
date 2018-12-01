@@ -58,7 +58,7 @@ protected:
 
 
     std::cout << "setGravity" << std::endl;
-		if (gravity) m_dynamicsWorld->setGravity(btVector3(0, -98, 0));
+		if (gravity) m_dynamicsWorld->setGravity(btVector3(0, -9.8*120, 0));
 
     // SB ONLY
     softBodyWorldInfo.m_broadphase = m_broadphase;

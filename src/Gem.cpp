@@ -5,6 +5,7 @@ Gem::Gem(Ogre::SceneManager* scene, const Ogre::Vector3& position)
 {
   m_scene = scene;
   m_sceneNode = m_scene->getRootSceneNode()->createChildSceneNode(position);
+  m_sceneNode->setScale(Ogre::Vector3(15));
   m_position = position;
   m_velocity = Ogre::Vector3(0, 8, 0);
 
@@ -20,8 +21,8 @@ Gem::Gem(Ogre::SceneManager* scene, const Ogre::Vector3& position)
   light->setSpecularColour(1.0, 0.3568627451, 0.30588235294);
   light->setCastShadows(false);
   light->setAttenuation(
-    100, // range
-    1,  // constant
+    15 * 100, // range
+    0.1,  // constant
     0.0,  // linear
     0.021);// quadratic
   lsn->attachObject(light);
@@ -68,7 +69,7 @@ void Gem::update(float dt)
   else
   {
     // gravity
-    m_velocity.y += -980 * dt * dt;
+    m_velocity.y += -15 * 980 * dt * dt;
   }
 
   // Apply

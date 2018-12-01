@@ -49,6 +49,8 @@ public:
     void clearScene();
 
     static void _mainLoop(void* target);
+
+
 private:
     unsigned char* mBuffer;
     Ogre::SceneNode* mNode;
@@ -61,6 +63,9 @@ private:
 
     bool mouseWheelRolled(const OgreBites::MouseWheelEvent& evt);
 
+
+    Ogre::GeneralAllocatedObject* mLevel1;
+    Ogre::GeneralAllocatedObject* mLevel2;
 };
 
 

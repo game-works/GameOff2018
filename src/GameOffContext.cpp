@@ -30,6 +30,7 @@
 
 #include "SamplePlugin.h"
 #include "TownSample.h"
+#include "ValhallaSample.h"
 // #include "EnemySample.h"
 // #include "Gem.h"
 

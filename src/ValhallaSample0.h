@@ -10,10 +10,10 @@
 
 // Active Items
 #include "Gem.h"
-#include "Enemy.h"
+#include "EnemySample.h"
 #include "Projectile.h"
 #include "CoinScene.h"
-#include "ValhallaMob.h"
+#include "Tail.h"
 
 
 using namespace Ogre;
@@ -24,7 +24,6 @@ using namespace OgreBites;
 class ValhallaScene : public SdkSample
 {
 public:
-
 
 
     ValhallaScene()
@@ -82,20 +81,8 @@ public:
                 //mElementHeart->getMaterial()->getTechnique(0)->getPass(0)->_update();
               }
 
-      mMob.update();
-
       updateActiveItems(dt);
       m_coinScene->update(dt);
-
-      // Update Camera
-      float dist = 320 * 1.5;
-      height = 420 * 1.5;
-      mCamera->getParentNode()->setPosition(
-        mChara->getPosition() +
-        Vector3::UNIT_Z * dist  + Vector3::UNIT_Y * height
-      );
-      mCamera->getParentSceneNode()->lookAt(mChara->getPosition(), Node::TS_PARENT);
-
       return SdkSample::frameRenderingQueued(evt);
     }
 
@@ -110,14 +97,12 @@ public:
         return SdkSample::keyPressed(evt);
     }
 
-
     bool keyReleased(const KeyboardEvent& evt)
     {
         // relay input events to character controller
         if (!mTrayMgr->isDialogVisible()) mChara->injectKeyUp(evt);
         return SdkSample::keyReleased(evt);
     }
-
 
     bool mouseMoved(const MouseMotionEvent& evt)
     {
@@ -127,16 +112,14 @@ public:
         m_mouseX = evt.x;
         m_mouseY = evt.y;
 
-        return false;//SdkSample::mouseMoved(evt);
+        return SdkSample::mouseMoved(evt);
     }
-
 
     virtual bool mouseWheelRolled(const MouseWheelEvent& evt) {
         // Relay input events to character controller.
         if (!mTrayMgr->isDialogVisible()) mChara->injectMouseWheel(evt);
         return SdkSample::mouseWheelRolled(evt);
     }
-
 
     bool mousePressed(const MouseButtonEvent& evt)
     {
@@ -164,14 +147,49 @@ protected:
 
     void setupContent()
     {
-      setupLights();
-      setupGround(); // Plane setup before shadows
-      setupShadows();
-
         m_coinScene = new CoinScene();
         m_coinScene->init(mSceneMgr);
 
-      mMob.init(mSceneMgr, &m_enemies);
+        // set background and some fog
+        mViewport->setBackgroundColour(ColourValue(1.0f, 1.0f, 0.8f));
+        mSceneMgr->setFog(
+          Ogre::FOG_LINEAR,
+          //ColourValue(1.0f, 1.0f, 0.8f),
+          ColourValue(0.8f, 0.8f, 1.0f),
+          0,    // expDensity
+          35,   // linear start
+          160); // linear end
+
+        // set shadow properties
+        mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_MODULATIVE);
+        //mSceneMgr->setShadowTechnique(SHADOWTYPE_STENCIL_MODULATIVE);
+        mSceneMgr->setShadowTextureSettings(1024, 2);
+        mSceneMgr->setShadowColour(ColourValue(0.5, 0.5, 0.5));
+        //mSceneMgr->setShadowTextureSize(1024);
+        //mSceneMgr->setShadowTextureCount(1);
+        //mSceneMgr->setShadowDirectionalLightExtrusionDistance(0.25 * mSceneMgr->getShadowDirectionalLightExtrusionDistance());
+
+        // disable default camera control so the character can do its own
+        mCameraMan->setStyle(CS_MANUAL);
+
+        // use a small amount of ambient lighting
+        mSceneMgr->setAmbientLight(ColourValue(0.3, 0.3, 0.3));
+
+        // add a bright light above the scene
+        Light* light = mSceneMgr->createLight();
+        //light->setType(Light::LT_POINT);
+        // mSceneMgr->getRootSceneNode()
+        //     ->createChildSceneNode(Vector3(-10, 40, 20))
+        //     ->attachObject(light);
+        light->setType(Light::LT_DIRECTIONAL);
+        SceneNode* lsn =
+        mSceneMgr->getRootSceneNode()
+            ->createChildSceneNode(Vector3(0, 40, 0));
+        lsn->attachObject(light);
+        lsn->yaw(Degree(8));
+        lsn->pitch(Degree(-59));
+
+        light->setSpecularColour(ColourValue::White);
 
         // create a floor mesh resource
         MeshManager::getSingleton().createPlane("floor", ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
@@ -212,11 +230,19 @@ protected:
 
         mTrayMgr->setTrayWidgetAlignment(TL_TOP, GHA_CENTER);
 
+        // DecorWidget* decor2 = mTrayMgr->createDecorWidget(TL_TOP, "Decor/Heart", "TrayHeart");
+        // DecorWidget* decor1 = mTrayMgr->createDecorWidget(TL_TOP, "Decor/FullMoon", "TrayMoon");
+        // ProgressBar* bar1 = mTrayMgr->createProgressBar(TL_TOPLEFT, "Bar/Heart", "Health", 300, 300);
+        // ProgressBar* bar2 = mTrayMgr->createProgressBar(TL_TOPRIGHT, "Bar/Moon", "Moon Power", 300, 300);
+
+
         Ogre::OverlayManager& overlayManager = Ogre::OverlayManager::getSingleton();
 
         // Create an overlay
         overlay = overlayManager.create( "OverlayName" );
 
+        //Ogre::OverlayElement* panel1 = overlayManager.createOverlayElementFromTemplate("TrayMoon", "Panel", "Decor/Heart");
+        //Ogre::OverlayElement* panel2 = overlayManager.createOverlayElementFromTemplate("TrayMoon", "Panel", "Decor/Moon");
         Ogre::OverlayElement* panel0 = overlayManager.createOverlayElement("Panel", "Decor/0");
         Ogre::OverlayElement* panel1 = overlayManager.createOverlayElement("Panel", "Decor/Heart");
         Ogre::OverlayElement* panel2 = overlayManager.createOverlayElement("Panel", "Decor/Moon");
@@ -227,6 +253,7 @@ protected:
 
         Ogre::OverlayElement* panelBarL = overlayManager.createOverlayElement("Panel", "Decor/BarL");
         Ogre::OverlayElement* panelBarR = overlayManager.createOverlayElement("Panel", "Decor/BarR");
+
 
         mElementHeart = panel1;
 
@@ -280,6 +307,9 @@ protected:
         panelBarR->setDimensions( 5, 32 );
         panelBarR->setMaterialName( "Wolf/BarBackgroundR" );
 
+        //panel2->setPosition( 0.5, 0.0 );
+        //panel2->setDimensions( 0.1, 0.1 );
+
         overlay->add2D( static_cast<Ogre::OverlayContainer*>(panel0) );
         overlay->add2D( static_cast<Ogre::OverlayContainer*>(panel1) );
         overlay->add2D( static_cast<Ogre::OverlayContainer*>(panel2) );
@@ -295,96 +325,6 @@ protected:
         overlay->show();
 
 
-    }
-
-
-    void setupLights()
-    {
-      // Set ambient light ...
-      mSceneMgr->setAmbientLight(ColourValue(0.4, 0.4, 0.4));
-
-      // Fixed light, dim
-      mSunLight = mSceneMgr->createLight("SunLight");
-      mSunLight->setType(Light::LT_SPOTLIGHT);
-
-      Vector3 pos(1500, 1750, 1300);
-      SceneNode* sunSceneNode =
-      mSceneMgr->getRootSceneNode()->createChildSceneNode(pos);
-      sunSceneNode->attachObject(mSunLight);
-      mSunLight->setSpotlightRange(Degree(30), Degree(50));
-      mSunLight->setDirection(-pos.normalisedCopy());
-      mSunLight->setDiffuseColour(0.35, 0.35, 0.38);
-      mSunLight->setSpecularColour(0.9, 0.9, 1);
-
-            sunSceneNode->yaw(Degree(-8));
-            sunSceneNode->pitch(Degree(-88));
-
-      // Point light, movable, reddish
-      mLight = mSceneMgr->createLight("Light2");
-      mLight->setDiffuseColour(0.5, 0.3, 0.1);
-      mLight->setSpecularColour(1, 1, 1);
-      mLight->setAttenuation(8000, 1, 0.0005, 0);
-
-      // Create light node
-      mLightNode = mSceneMgr->getRootSceneNode()->createChildSceneNode(
-          "MovingLightNode");
-      mLightNode->attachObject(mLight);
-      // create billboard set
-      //mLight->setPosition(Vector3(300,250,-300));
-      mLight->setPosition(Vector3(300, 750, -200));
-
-      mLightNode->yaw(Degree(8));
-      mLightNode->pitch(Degree(-59));
-    }
-
-
-    void setupGround()
-    {
-      // Another node?
-      SceneNode* node;
-      node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
-
-      // Floor plane (use POSM plane def)
-      mPlane = new MovablePlane("*mPlane");
-      mPlane->normal = Vector3::UNIT_Y;
-      mPlane->d = 0;
-      MeshManager::getSingleton().createPlane("Myplane",
-          ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, *mPlane,
-          1500 * 4, 1500 * 4,
-          50, 50,
-          true,
-          1,
-          5, 5,
-          Vector3::UNIT_Z);
-      pPlaneEnt = mSceneMgr->createEntity( "plane", "Myplane" );
-      pPlaneEnt->setMaterialName("Wolf/DirtBlend");
-      pPlaneEnt->setCastShadows(false);
-      mSceneMgr->getRootSceneNode()->createChildSceneNode()->attachObject(pPlaneEnt);
-      mSceneMgr->setShadowTextureSettings(1024, 2);
-      mSceneMgr->setShadowColour(ColourValue(0.5, 0.5, 0.5));
-      //mSceneMgr->setShowDebugShadows(true);
-    }
-
-
-    void setupShadows()
-    {
-      // do this first so we generate edge lists
-      mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_MODULATIVE);
-
-          // Fixed light, dim
-          mSunLight->setCastShadows(false);
-          mSunLight->setType(Light::LT_DIRECTIONAL);
-
-          // Change moving light to spotlight
-          // Point light, movable, reddish
-          mLight->setType(Light::LT_DIRECTIONAL);
-          mLight->setCastShadows(true);
-          mLight->setDiffuseColour(0.5, 0.3, 0.1);
-          mLight->setSpecularColour(1, 1, 1);
-          mLight->setAttenuation(8000,1,0.0005,0);
-          mLight->setSpotlightRange(Degree(80),Degree(90));
-
-      handleProjectionChanged();
     }
 
 
@@ -416,7 +356,7 @@ protected:
       // ... Enemies
       for (auto i : m_enemies)
       {
-        i->update(dt, mChara->getPosition());
+        i->update(dt);
       }
 
       // Projectiles
@@ -444,7 +384,7 @@ protected:
       for (auto i = m_enemies.begin(); i != m_enemies.end();)
       {
         Real d2 = (*i)->getPosition().squaredDistance(mChara->getPosition());
-        if (d2 < 36 * 12 * 12)
+        if (d2 < 36)
         {
           // Kill enemy, leave a gem
           SceneManager* sm = mCamera->getSceneManager();
@@ -470,7 +410,7 @@ protected:
         for (auto j = m_projectiles.begin(); j != m_projectiles.end();)
         {
           Real d2 = (*i)->getPosition().squaredDistance((*j)->getPosition());
-          if (d2 < 25 * 12 * 12)
+          if (d2 < 25)
           {
             // Kill enemy, leave a gem
             SceneManager* sm = mCamera->getSceneManager();
@@ -511,51 +451,43 @@ protected:
       }
 
       // Check Enemy Spawn potential
-      // if (m_enemies.size() < 24)
-      // {
-      //   Real t = Ogre::Math::RangeRandom(0.0, 360.0);
-      //   Real r = Ogre::Math::RangeRandom(45.0, 65.0);
-      //   Real x = r * Ogre::Math::Cos(Ogre::Degree(t)) + mChara->getPosition().x;
-      //   Real y = r * Ogre::Math::Sin(Ogre::Degree(t)) + mChara->getPosition().z;
-      //
-      //   int k = rand() % 6;
-      //   if (k <= 3)
-      //     m_enemies.push_back(
-      //       new EnemySample(
-      //         mCamera->getSceneManager(),
-      //         Ogre::Vector3(x, 5.5, y),
-      //         "Mage.mesh",
-      //         "my_animation",
-      //         0.5)
-      //     );
-      //   if (k == 4)
-      //     m_enemies.push_back(
-      //       new EnemySample(
-      //         mCamera->getSceneManager(),
-      //         Ogre::Vector3(x, 5.5, y),
-      //         "Cylinder.001.mesh",
-      //         "Skeleton_Idle",
-      //         2)
-      //     );
-      //   if (k == 5)
-      //     m_enemies.push_back(
-      //       new EnemySample(
-      //         mCamera->getSceneManager(),
-      //         Ogre::Vector3(x, 5.5, y),
-      //         "Dragon.mesh",
-      //         "Dragon_Flying",
-      //        4)
-      //     );
-      // }
+      if (m_enemies.size() < 24)
+      {
+        Real t = Ogre::Math::RangeRandom(0.0, 360.0);
+        Real r = Ogre::Math::RangeRandom(45.0, 65.0);
+        Real x = r * Ogre::Math::Cos(Ogre::Degree(t)) + mChara->getPosition().x;
+        Real y = r * Ogre::Math::Sin(Ogre::Degree(t)) + mChara->getPosition().z;
 
-    }
+        int k = rand() % 6;
+        if (k <= 3)
+          m_enemies.push_back(
+            new EnemySample(
+              mCamera->getSceneManager(),
+              Ogre::Vector3(x, 5.5, y),
+              "Mage.mesh",
+              "my_animation",
+              0.5)
+          );
+        if (k == 4)
+          m_enemies.push_back(
+            new EnemySample(
+              mCamera->getSceneManager(),
+              Ogre::Vector3(x, 5.5, y),
+              "Cylinder.001.mesh",
+              "Skeleton_Idle",
+              2)
+          );
+        if (k == 5)
+          m_enemies.push_back(
+            new EnemySample(
+              mCamera->getSceneManager(),
+              Ogre::Vector3(x, 5.5, y),
+              "Dragon.mesh",
+              "Dragon_Flying",
+             4)
+          );
+      }
 
-
-    void handleProjectionChanged()
-    {
-      mCurrentShadowCameraSetup =
-        ShadowCameraSetupPtr(new PlaneOptimalShadowCameraSetup(mPlane));
-      mSceneMgr->setShadowCameraSetup(mCurrentShadowCameraSetup);
     }
 
 
@@ -565,7 +497,7 @@ protected:
     //
 
     AnimeCharacterController* mChara;
-    std::vector<Enemy*> m_enemies;
+    std::vector<EnemySample*> m_enemies;
     std::vector<Projectile*> m_projectiles;
     std::vector<Gem*> m_gems;
     Vector3 cursorPos = Vector3::ZERO;
@@ -579,15 +511,6 @@ protected:
     OverlayElement* mElementHeart;
 
     CoinScene* m_coinScene;
-
-    Light* mLight;
-    Light* mSunLight;
-    SceneNode* mLightNode;
-    Entity* pPlaneEnt;
-    MovablePlane* mPlane;
-    ShadowCameraSetupPtr mCurrentShadowCameraSetup;
-    ValhallaMob mMob;
-
 };
 
 #endif

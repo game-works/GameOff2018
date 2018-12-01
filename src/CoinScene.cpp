@@ -49,7 +49,7 @@ void CoinScene::createCoin(float x, float y, float z, int i)
   t.setIdentity();
   t.setOrigin(btVector3(x, y, z));
 
-  btCollisionShape* shape = new btCylinderShapeZ(btVector3(0.7, 0.7, 0.1));
+  btCollisionShape* shape = new btCylinderShapeZ(12.0 * btVector3(0.7, 0.7, 0.1));
   std::cout << "createRigidBody" << std::endl;
   body = m_bulletScene->createRigidBody(
     1.f,      //float mass,
@@ -65,6 +65,7 @@ void CoinScene::createCoin(float x, float y, float z, int i)
 
 
   Ogre::Entity* coin = m_sm->createEntity(coin_files[i]);
+  node->setScale(Ogre::Vector3(12));
   node->attachObject(coin);
 
   m_nodes.push_back(node);
@@ -85,7 +86,7 @@ void CoinScene::createCoin(Ogre::Vector3 p)
     p.y + Ogre::Math::RangeRandom(-1, 1),
     p.z + Ogre::Math::RangeRandom(-1, 1)));
 
-  btCollisionShape* shape = new btCylinderShapeZ(btVector3(0.7, 0.7, 0.1));
+  btCollisionShape* shape = new btCylinderShapeZ(10.0 * btVector3(0.7, 0.7, 0.1));
   std::cout << "createRigidBody" << std::endl;
   body = m_bulletScene->createRigidBody(
     1.f,      //float mass,
@@ -106,6 +107,7 @@ void CoinScene::createCoin(Ogre::Vector3 p)
   ));
 
   node = m_sm->getRootSceneNode()->createChildSceneNode();
+  node->setScale(Ogre::Vector3(10));
 
   Ogre::String coin_files[5] =
   {"Coin_1.mesh", "Coin_2.mesh", "Coin_3.mesh", "Coin_4.mesh", "Coin_5.mesh"};

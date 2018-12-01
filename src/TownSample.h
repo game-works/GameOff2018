@@ -47,6 +47,8 @@ protected:
   MessageManager mMessageManager;
   ConvoManager mConvoManager;
 
+  ChickenMob* mChickenMob;
+
 public:
 
   //
@@ -128,6 +130,9 @@ public:
 
     mCamera->getParentSceneNode()->lookAt(mCharacter->getPosition(), Node::TS_PARENT);
 
+    // Mob
+    mChickenMob->update();
+
     // SDK...
     return SdkSample::frameEnded(evt);
   }
@@ -174,8 +179,7 @@ public:
     setupDialogs();
 
     // Chicken Mob
-    ChickenMob mpb(mSceneMgr);
-    mActiveItems.push_back(mpb.spawn());
+    mChickenMob = new ChickenMob(mSceneMgr, &mActiveItems);
   }
 
 
@@ -422,8 +426,11 @@ public:
       // sn = root->createChildSceneNode(Vector3(-3.444748, 11.612431, -2.526091));
       // sn->setOrientation(Quaternion(1.000000, 0.000000, 0.000000, -0.000000));
       // sn->setScale(Vector3(0.100000, 0.100000, 0.100000));
-      sn = root->createChildSceneNode();
+      sn = root->createChildSceneNode(Vector3(-40.5262, 0, 30.6557));
       sn->attachObject(mSceneMgr->createEntity("CathedralRuinOne300.mesh"));
+      sn->yaw(Degree(85.1));
+      sn->setScale(Vector3(0.172));
+      //sn->setScale(Vector3(0.100000, 0.100000, 0.100000));
 
       // sn = root->createChildSceneNode(Vector3(-3.444748, 11.612430, -2.526085));
       // sn->setOrientation(Quaternion(1.000000, -0.000000, 0.000000, -0.000000));
