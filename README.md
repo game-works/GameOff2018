@@ -1,8 +1,11 @@
 # Huntress
-## A Game for GitHub Game Off 2018
-## "Hybrid"
+### A Game for GitHub Game Off 2018
+### "Hybrid"
 
-### How to compile
+The game is online at [itch.io/huntress](https://jnmaloney.itch.io/huntress).
+
+
+## How to compile
 
 Requires the Emscripten toolkit and Cmake.
 
