@@ -11,7 +11,7 @@ Requires the Emscripten toolkit and Cmake.
 
 In the console type this to generate the makefiles
 
-  cmake -DCMAKE_TOOLCHAIN_FILE=/home/jmaloney/emsdk/emscripten/1.37.36/cmake/Modules/Platform/Emscripten.cmake .
+  cmake -DCMAKE_TOOLCHAIN_FILE=/emsdk/emscripten/1.37.36/cmake/Modules/Platform/Emscripten.cmake .
 
 then type this to create the output js and web asm files
 
