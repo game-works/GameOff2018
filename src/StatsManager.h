@@ -5,25 +5,29 @@ class StatsManager
 {
 public:
 
-  StatsManager();
-  ~StatsManager();
+  static float hp;
+  static float maxhp;
+  static float moon;
+  static float maxmoon;
+  static bool wantsTransform;
+  static bool hybrid;
 
-  float hp = 100;
-  float maxhp = 100;
-  float moon = 0;
-  float maxmoon = 100;
 
-
-  void addHP(int a)
+  static void addHP(float a)
   {
     hp += a;
     if (hp > maxhp) hp = maxhp;
   }
 
 
-  void addMoon(int a)
+  static void addMoon(float a)
   {
     moon += a;
+    if (moon >= maxmoon)
+    {
+      moon = maxmoon;
+      wantsTransform = true;
+    }
   }
 
 

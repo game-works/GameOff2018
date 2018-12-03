@@ -156,7 +156,21 @@ Tail::~Tail()
 }
 
 
-void Tail::init(Ogre::SceneManager* sm, AnimeCharacterController* character)
+void Tail::show()
+{
+  if (mHidden) m_tailNode->attachObject(m_tailEntity);
+  mHidden = false;
+}
+
+
+void Tail::hide()
+{
+  if (!mHidden) m_tailNode->detachObject(m_tailEntity);
+  mHidden = true;
+}
+
+
+void Tail::init(Ogre::SceneManager* sm, Ogre::SceneNode* root, AnimeCharacterController* character)
 {
   m_bulletScene = new BulletScene();
   m_bulletScene->gravity = false; // TODO
@@ -167,7 +181,7 @@ void Tail::init(Ogre::SceneManager* sm, AnimeCharacterController* character)
   btTransform t;
   t.setIdentity();
 
-  m_tailNode = m_sm->getRootSceneNode()->createChildSceneNode();
+  m_tailNode = root->createChildSceneNode();
 
     // Tail Entity
     m_tailEntity = m_sm->createEntity("Tail.mesh");
@@ -208,6 +222,8 @@ void Tail::init(Ogre::SceneManager* sm, AnimeCharacterController* character)
 
 void Tail::update(float dt, AnimeCharacterController* character)
 {
+  if (mHidden) return;
+  
   // SoftBody position from character
   btTransform xform;
   xform.setIdentity();

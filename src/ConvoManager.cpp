@@ -6,8 +6,8 @@
 ConvoManager::ConvoManager()
 {
   Ogre::OverlayManager& overlayManager = Ogre::OverlayManager::getSingleton();
-  Overlay* overlay = overlayManager.create( "OverlayName" );
-  panel0 = overlayManager.createOverlayElement("TextArea", "Decor/0");
+  Overlay* overlay = overlayManager.create( "OverlayName_Convo" );
+  panel0 = overlayManager.createOverlayElement("TextArea", "ConvoPanel");
   panel0->setMetricsMode(GMM_PIXELS);
   panel0->setPosition( 0, 24 );
   panel0->setDimensions( 128, 64 );
@@ -73,6 +73,9 @@ void ConvoManager::update(Real dt, Camera* cam)
     {
       m_ticker += 1;
       m_timer = 2.000;
+
+      if (m_ticker >= m_dialog.lines.size())
+        ended = true;
     }
   }
   else

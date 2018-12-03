@@ -2,18 +2,21 @@
 
 
 #include <Ogre.h>
+#include "ActiveItem.h"
 
 
-class Gem
+class Gem : public ActiveItem
 {
 public:
 
-  Gem(Ogre::SceneManager* m_scene, const Ogre::Vector3& position);
+  Gem(Ogre::SceneManager* m_scene, Ogre::SceneNode* root, const Ogre::Vector3& position, int t);
   ~Gem();
 
   void update(float dt);
 
   const Ogre::Vector3 & getPosition() { return m_position; }
+
+  String classType() { return mClassType; }
 
 protected:
 
@@ -30,4 +33,6 @@ protected:
   Ogre::Light* m_light;
 
   bool m_stationary = false;
+
+  String mClassType = "Gem";
 };

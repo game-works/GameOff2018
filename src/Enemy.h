@@ -5,13 +5,14 @@
 #include <Ogre.h>
 #include <stdio.h>
 #include <iostream>
+#include "Agent.h"
 
 
 using namespace Ogre;
 using namespace OgreBites;
 
 
-class Enemy
+class Enemy : public Agent
 {
 
 public:

@@ -12,7 +12,7 @@ public:
   CoinScene();
   ~CoinScene();
 
-  void init(Ogre::SceneManager* sm);
+  void init(Ogre::SceneManager* sm, Ogre::SceneNode* root);
 
   void update(float dt);
 
@@ -28,4 +28,5 @@ protected:
   std::vector<Ogre::SceneNode*> m_nodes;
 
   Ogre::SceneManager* m_sm = 0;
+  Ogre::SceneNode* m_root;
 };

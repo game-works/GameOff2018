@@ -30,7 +30,7 @@ set(CMAKE_EXE_LINKER_FLAGS "--preload-file ${MEDIA_DIR}/@. -s EXPORTED_FUNCTIONS
 
 add_definitions(-s USE_SDL=2 -s WASM=1 -std=c++1z -s USE_BULLET=1)
 
-add_executable(ogreTrees Main.cpp src/GameOffContext.cpp src/Gem.cpp src/Projectile.cpp src/CoinScene.cpp src/BulletScene.cpp src/Tail.cpp src/ConvoManager.cpp src/btOgre/btOgreSoftBody.cpp)
+add_executable(ogreTrees Main.cpp src/GameOffContext.cpp src/Gem.cpp src/Projectile.cpp src/CoinScene.cpp src/BulletScene.cpp src/Tail.cpp src/ConvoManager.cpp src/StatsManager.cpp src/btOgre/btOgreSoftBody.cpp)
 
 target_link_libraries(
 ogreTrees

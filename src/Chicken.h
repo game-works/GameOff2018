@@ -30,18 +30,25 @@ class Chicken : public Agent
 
 public:
 
-  Chicken(SceneManager* sm, Vector3 startPos) :
+  Chicken(SceneManager* sm, SceneNode* root, Vector3 startPos) :
     mAnimID(ANIM_NONE)
   {
     mSceneMgr = sm;
 
-    setupBody("Hen.mesh");
+    setupBody("Hen.mesh", root);
     setPosition(startPos);
 
     setupAnimations(mBodyEnt, mAnims);
 
     // start off in the idle state
     setAnimation(ANIM_PICK, true);
+  }
+
+
+  ~Chicken()
+  {
+    mSceneMgr->destroyEntity(mBodyEnt);
+    mSceneMgr->destroySceneNode(mBodyNode);
   }
 
 
@@ -62,16 +69,28 @@ public:
   }
 
 
+  void hit()
+  {
+    mRemove = true;
+  }
+
+
+  void hitRange()
+  {
+      mRemove = true;
+  }
+
+
   String classType() { return "Hen"; }
 
 
-  private:
+private:
 
 
-      void setupBody(String meshName)
+      void setupBody(String meshName, SceneNode* root)
       {
           // create main model
-          mBodyNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+          mBodyNode = root->createChildSceneNode();
           mBodyEnt = mSceneMgr->createEntity(meshName);
           mBodyNode->attachObject(mBodyEnt);
       }

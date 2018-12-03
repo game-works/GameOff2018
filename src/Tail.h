@@ -14,9 +14,12 @@ public:
   Tail();
   ~Tail();
 
-  void init(Ogre::SceneManager* sm, AnimeCharacterController* character);
+  void init(Ogre::SceneManager* sm, Ogre::SceneNode* root, AnimeCharacterController* character);
 
   void update(float dt, AnimeCharacterController* character);
+
+  void show();
+  void hide();
 
 protected:
 
@@ -29,5 +32,8 @@ protected:
   Ogre::SceneManager* m_sm = 0;
   Ogre::SceneNode* m_tailNode = 0;
   Ogre::Entity* m_tailEntity;
+
+
+  bool mHidden = false;
 
 };

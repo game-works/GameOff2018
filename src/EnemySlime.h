@@ -30,11 +30,15 @@ private:
   const Real TURN_SPEED = 500.0f;      // character turning in degrees per second
   const Real ANIM_FADE_SPEED = 7.5f;   // animation crossfade speed in % of full weight per second
 
+  int mHP = 2;
+  Real mImmuneTimer = 0;
+
 public:
 
-    EnemySlime(SceneManager* sm, Vector3 pos)
+    EnemySlime(SceneManager* sm, SceneNode* root, Vector3 pos)
     {
       mSceneManager = sm;
+      mRoot = root;
       m_position = pos;
       setup();
     }
@@ -50,15 +54,46 @@ public:
     const Ogre::Vector3 & getPosition() { return mBodyNode->getPosition(); }
 
 
+    String classType() { return "Slime"; }
+
+
+    void hit()
+    {
+      if (StatsManager::hybrid)
+      {
+        mRemove = true;
+        return;
+      }
+
+      if (mImmuneTimer <= 0)
+      {
+        --mHP;
+        if (mHP == 0) mRemove = true;
+        mImmuneTimer = 0.3;
+
+        mTimer = 0;
+        setBaseAnimation(ANIM_DEATH, true);
+      }
+    }
+
+
+    void hitRange()
+    {
+        mRemove = true;
+    }
+
+
     void setup()
     {
       // BODY
-      mBodyNode = mSceneManager->getRootSceneNode()->createChildSceneNode(m_position);
+      mBodyNode = mRoot->createChildSceneNode(m_position);
       mBodyNode->setScale(Vector3(16));
       //mBodyEnt = mSceneManager->createEntity("EnemyBody", "Knight.mesh");
       mBodyEnt = mSceneManager->createEntity("Slime.mesh");
 
-      mBodyNode->attachObject(mBodyEnt);
+      SceneNode* att = mBodyNode->createChildSceneNode();
+      att->yaw(Degree(-90));
+      att->attachObject(mBodyEnt);
 
       // ANIMATIONS
 
@@ -113,12 +148,66 @@ public:
     }
 
 
-    void update(Real deltaTime, Vector3 characterPos)
+    void addTime(Real deltaTime)
     {
-      // Logic
-      if (mBaseAnimID == ANIM_IDLE)
-      {
+      if (mImmuneTimer > 0) mImmuneTimer -= deltaTime;
 
+      Vector3 characterTarget = Continuity::characterPosition;
+      characterTarget.y = 0;
+
+      // Logic
+      Real range = getPosition().squaredDistance(characterTarget);
+
+      if (mBaseAnimID != ANIM_DEATH && mBaseAnimID != ANIM_ATTACK)
+      {
+        if (range < 35 * 35)
+        {
+          mTimer = 0;
+          setBaseAnimation(ANIM_ATTACK, true);
+        }
+        else if (range < 400 * 400)
+        {
+          setBaseAnimation(ANIM_WALK);
+        }
+        else if (range > 1000 * 1000)
+        {
+          mRemove = true;
+        }
+        else
+        {
+          setBaseAnimation(ANIM_IDLE);
+        }
+      }
+
+      // Walking
+      if (mBaseAnimID == ANIM_WALK)
+      {
+        Vector3 goalNormal = characterTarget - getPosition();
+        goalNormal.normalise();
+
+        Quaternion toGoal = mBodyNode->getOrientation().zAxis().getRotationTo(goalNormal);
+
+        // calculate how much the character has to turn to face goal direction
+        Real yawToGoal = toGoal.getYaw().valueDegrees();
+        // this is how much the character CAN turn this frame
+        Real yawAtSpeed = yawToGoal / Math::Abs(yawToGoal) * deltaTime * TURN_SPEED;
+        // reduce "turnability" if we're in midair
+        //if (mBaseAnimID == ANIM_JUMP_LOOP) yawAtSpeed *= 0.2f;
+
+        // turn as much as we can, but not more than we need to
+        if (yawToGoal < 0) yawToGoal = std::min<Real>(0, std::max<Real>(yawToGoal, yawAtSpeed)); //yawToGoal = Math::Clamp<Real>(yawToGoal, yawAtSpeed, 0);
+        else if (yawToGoal > 0) yawToGoal = std::max<Real>(0, std::min<Real>(yawToGoal, yawAtSpeed)); //yawToGoal = Math::Clamp<Real>(yawToGoal, 0, yawAtSpeed);
+
+        mBodyNode->yaw(Degree(yawToGoal));
+
+        // move in current body direction (not the goal direction)
+        // HACK
+        mBodyNode->translate(
+            0,
+            0,
+            deltaTime * RUN_SPEED,
+            //* mAnims[mBaseAnimID]->getWeight(),
+            Node::TS_LOCAL);
       }
 
 
@@ -130,6 +219,23 @@ public:
 
       // increment the current base and top animation times
       if (mBaseAnimID != ANIM_NONE) mAnims[mBaseAnimID]->addTime(deltaTime * baseAnimSpeed);
+
+      // ...
+      if (mBaseAnimID == ANIM_DEATH && mTimer >= mAnims[ANIM_DEATH]->getLength())
+      {
+        setBaseAnimation(ANIM_IDLE);
+      }
+
+      if (mTimer - deltaTime < 0.5 * mAnims[ANIM_ATTACK]->getLength() &&
+          mTimer >= 0.5 * mAnims[ANIM_ATTACK]->getLength())
+      {
+        mDamaging = true;
+      }
+
+      if (mBaseAnimID == ANIM_ATTACK && mTimer >= mAnims[ANIM_ATTACK]->getLength())
+      {
+        setBaseAnimation(ANIM_IDLE);
+      }
 
       // apply smooth transitioning between our animations
       fadeAnimations(deltaTime);
@@ -166,6 +272,7 @@ protected:
 
   SceneManager* mSceneManager;
   SceneNode* mBodyNode;
+  SceneNode* mRoot;
   Entity* mBodyEnt;
   AnimationState* mAnims[NUM_ANIMS];    // master animation list
   bool mFadingIn[NUM_ANIMS];            // which animations are fading in

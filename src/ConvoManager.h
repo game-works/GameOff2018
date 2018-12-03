@@ -30,6 +30,8 @@ class ConvoManager
 {
 public:
 
+  bool ended = false;
+
   ConvoManager();
   ~ConvoManager();
 

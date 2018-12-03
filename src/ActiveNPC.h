@@ -32,19 +32,19 @@ private:
     };
 
     const Real ANIM_FADE_SPEED = 7.5f;   // animation crossfade speed in % of full weight per second
-    
+
 
 public:
 
   Dialog m_convo;
   bool m_hasConvo = true;
 
-    ActiveNPC1(SceneManager* sm, Vector3 startPos, String meshName) :
+    ActiveNPC1(SceneManager* sm, SceneNode* root, Vector3 startPos, String meshName) :
       mAnimID(ANIM_NONE)
     {
       mSceneMgr = sm;
 
-      setupBody(meshName);
+      setupBody(meshName, root);
       setPosition(startPos);
 
       setupAnimations(mBodyEnt, mAnims);
@@ -76,10 +76,10 @@ public:
 private:
 
 
-    void setupBody(String meshName)
+    void setupBody(String meshName, SceneNode* root)
     {
         // create main model
-        mBodyNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+        mBodyNode = root->createChildSceneNode();
         mBodyNode->setScale(Vector3(8.5));
         mBodyEnt = mSceneMgr->createEntity(meshName);
         mBodyNode->attachObject(mBodyEnt);

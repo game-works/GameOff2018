@@ -30,7 +30,7 @@
 
 #include "SamplePlugin.h"
 #include "TownSample.h"
-#include "ValhallaSample.h"
+//#include "ValhallaSample.h"
 // #include "EnemySample.h"
 // #include "Gem.h"
 
@@ -253,8 +253,12 @@ void Context::setup()
     mWindow = getRenderWindow();
     addInputListener(this);
 
-    //mCurrentSample = new ValhallaScene();
-    mCurrentSample = new TownScene();
-    mCurrentSample->setShaderGenerator(mShaderGenerator);
-    mCurrentSample->_setup(mWindow, mFSLayer, mOverlaySystem);
+    mSampleTown = new TownScene();
+    mSampleTown->setShaderGenerator(mShaderGenerator);
+    mSampleTown->_setup(mWindow, mFSLayer, mOverlaySystem);
+
+    mCurrentSample = mSampleTown;
+
+    //mCurrentSample->setShaderGenerator(mShaderGenerator);
+    //mCurrentSample->_setup(mWindow, mFSLayer, mOverlaySystem);
 }

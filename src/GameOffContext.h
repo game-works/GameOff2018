@@ -54,6 +54,8 @@ public:
 private:
     unsigned char* mBuffer;
     Ogre::SceneNode* mNode;
+    OgreBites::Sample* mSampleTown;
+    OgreBites::Sample* mSampleValhalla;
 
     void destroyMaterials( const Ogre::String& resourceGroupID );
     void destroyTextures( const Ogre::String& resourceGroupID );
@@ -62,7 +64,6 @@ private:
     void setup();
 
     bool mouseWheelRolled(const OgreBites::MouseWheelEvent& evt);
-
 
     Ogre::GeneralAllocatedObject* mLevel1;
     Ogre::GeneralAllocatedObject* mLevel2;

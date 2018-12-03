@@ -12,6 +12,13 @@
 #include "Continuity.h"
 #include "ConvoManager.h"
 #include "ChickenMob.h"
+#include "ValhallaMob.h"
+#include "Gem.h"
+#include "Blink.h"
+#include "StatsPanel.h"
+#include "StatsManager.h"
+#include "Projectile.h"
+#include "CoinScene.h"
 
 
 using namespace Ogre;
@@ -42,12 +49,36 @@ protected:
   ShadowCameraSetupPtr mCurrentShadowCameraSetup;
 
   std::vector<ActiveItem*> mActiveItems;
+  std::vector<ActiveItem*> mActiveItemsStashTown;
+  std::vector<ActiveItem*> mActiveItemsStashForest;
 
   // Message panel
   MessageManager mMessageManager;
   ConvoManager mConvoManager;
 
   ChickenMob* mChickenMob;
+  ValhallaMob* mValhallaMob;
+
+  std::vector<Ogre::Vector3> mGemsToAdd;
+  std::vector<int> mGemsToAddType;
+  std::vector<Ogre::Vector3> mBlinksToAdd;
+  std::vector<int> mBlinksToAddType;
+  std::vector<Ogre::Vector3> mCoinsToAdd;
+
+
+  StatsPanel mStatsPanel;
+
+  SceneNode* mTownNode;
+  SceneNode* mForestNode;
+  int mLevel = 0;
+
+  std::vector<Projectile*> m_projectiles;
+  Vector3 cursorPos = Vector3::ZERO;
+  float m_mouseX = 0;
+  float m_mouseY = 0;
+
+  CoinScene* m_coinScene;
+
 
 public:
 
@@ -56,16 +87,193 @@ public:
   //
   bool frameEnded(const FrameEvent& evt)
   {
+    float dt = evt.timeSinceLastFrame;
+
+    m_coinScene->update(dt);
+
+    // Find Cursor Position
+
+    float width = (float) mCamera->getViewport()->getActualWidth(); // viewport width
+    float height = (float) mCamera->getViewport()->getActualHeight(); // viewport height
+    float x = m_mouseX / width;
+    float y = m_mouseY / height;
+    Ray ray = mCamera->getCameraToViewportRay(x, y);
+    //Ray ray = mTrayMgr->getCursorRay(mCamera);
+    Plane plane = Plane(Vector3::UNIT_Y, 0);
+    auto intersects = ray.intersects(plane);
+    if (intersects.first)
+    {
+      cursorPos = ray.getPoint(intersects.second);
+      cursorPos.y = mCharacter->getPosition().y;
+    }
+
+    // Gems?
+    while (mGemsToAdd.size())
+    {
+      Ogre::Vector3 p = mGemsToAdd.back();
+      mGemsToAdd.pop_back();
+
+      int i = mGemsToAddType.back();
+      mGemsToAddType.pop_back();
+
+      if (mLevel == 0)
+        mActiveItems.push_back(
+          new Gem(mSceneMgr, mTownNode, p, i));
+      else
+        mActiveItems.push_back(
+          new Gem(mSceneMgr, mForestNode, p, i));
+    }
+
+    // Coins
+    while (mCoinsToAdd.size())
+    {
+      Ogre::Vector3 p = mCoinsToAdd.back();
+      mCoinsToAdd.pop_back();
+
+      int nk = 1 + rand() % 3;
+      for (int k = 0; k < nk; ++k)
+        m_coinScene->createCoin(p);
+    }
+
+    // Blinks;
+    while (mBlinksToAdd.size())
+    {
+      Ogre::Vector3 p = mBlinksToAdd.back();
+      mBlinksToAdd.pop_back();
+
+      int i = mBlinksToAddType.back();
+      mBlinksToAddType.pop_back();
+
+      mActiveItems.push_back(
+        new Blink(i, p, mCamera));
+    }
+
     // Character handling
     mCharacter->addTime(evt.timeSinceLastFrame);
 
-    // Active NPC timing
+    // Projectiles
+    for (auto i : m_projectiles)
+      i->update(dt);
+
+    // Enemies vs projectiles
+    for (auto i = mActiveItems.begin(); i != mActiveItems.end();)
+    {
+      if ((*i)->classType() == "Skeleton" ||
+          (*i)->classType() == "Slime" ||
+          (*i)->classType() == "Hen")
+      {
+        for (auto j = m_projectiles.begin(); j != m_projectiles.end();)
+        {
+          Real d2 = (*i)->getPosition().squaredDistance((*j)->getPosition());
+          if (d2 < 4 * 25 * 12 * 12)
+          {
+            (*i)->hitRange();
+
+            // Remove projectile
+            delete *j;
+            j = m_projectiles.erase(j);
+          }
+          else
+          {
+            ++j;
+          }
+        }
+        if (i != mActiveItems.end()) ++i; // bug?
+      }
+      else
+      {
+        ++i;
+      }
+    }
+
+    // More projectiles... Expiration
+    for (auto j = m_projectiles.begin(); j != m_projectiles.end();)
+    {
+      if ((*j)->isStationary())
+      {
+        delete *j;
+        j = m_projectiles.erase(j);
+      }
+      else
+      {
+        ++j;
+      }
+    }
+
+    // Active object timing
     for (auto i : mActiveItems)
     {
       i->addTime(evt.timeSinceLastFrame);
+
+      // proximity of gems
+      if (i->classType() == "Gem2" || i->classType() == "Gem1")
+      {
+        Real d2 = i->getPosition().squaredDistance(mCharacter->getPosition());
+        if (d2 < 12 * 15 * 15)
+        {
+          // There it goes
+          i->mRemove = true;
+        }
+      }
     }
-    // Activate convo
-    Real r = 300.0;
+
+    // Chicken getting hit
+    if (mCharacter->mDamaging)
+    {
+      for (auto i : mActiveItems)
+      {
+        // Distance check
+        Real r = 80;
+        if (i->getPosition().squaredDistance(mCharacter->getPosition()) < r * r)
+        {
+          i->hit();
+        }
+      }
+    }
+
+    // Getting hit back
+    for (auto i : mActiveItems)
+    {
+      if (i->mDamaging)
+      {
+        i->mDamaging = false;
+        if (i->classType() == "Slime" &&
+            i->getPosition().squaredDistance(mCharacter->getPosition()) < 35 * 35)
+        {
+          mCharacter->hit(6);
+        }
+
+        if (i->classType() == "Skeleton" &&
+            i->getPosition().squaredDistance(mCharacter->getPosition()) < 55 * 55)
+        {
+          mCharacter->hit(13);
+        }
+      }
+    }
+
+    // Check for respawn
+    if (StatsManager::hp <= 0)
+    {
+      //respawn();
+
+      StatsManager::hp = 100;
+      StatsManager::moon = 0;
+      mCharacter->setPosition(Vector3(0, 0, 38.0 * 35.0 - 50));
+
+      // clear active items
+      for (auto i : mActiveItems)
+      {
+        i->mRemove = true;
+      }
+
+      Continuity::died();
+
+      mValhallaMob->mSpawned = 0;
+    }
+
+
+    // Activate NPC convo
+    Real r = 200.0;
     for (auto i : mActiveItems)
     {
       if (i->classType() == "NPC")
@@ -80,32 +288,21 @@ public:
     }
 
     mConvoManager.update(evt.timeSinceLastFrame, mCamera);
+    if (mConvoManager.ended)
+    {
+      Continuity::onConversationEnd();
+      mConvoManager.ended = false;
+    }
 
     // Lock Character to edge position
-    Vector3 p = mCharacter->getPosition();
-    r = 40.0 * 35.0;
-    Real d = 36.0 * 35.0;
-    // Circle border
-    if (p.x * p.x + p.z * p.z > r * r)
+    Vector3 p;
+    if (mLevel == 0)
     {
-      p *= (r * r) / (p.x * p.x + p.z * p.z);
-    }
-    // Square border
-    if (p.x > d) p.x = d;
-    if (p.x < -d) p.x = -d;
-    if (p.z > d) p.z = d;
-    if (p.z < -d) p.z = -d;
-
-    mCharacter->setPosition(p);
-
-    // Lock actives to edge position
-    for (auto i : mActiveItems)
-    {
-      Vector3 p = i->getPosition();
+      p = mCharacter->getPosition();
       r = 40.0 * 35.0;
       Real d = 36.0 * 35.0;
       // Circle border
-      if (p.x * p.x + p.z * p.z > r * r)
+      if (p.x * p.x + p.z * p.z > r * r && p.z >= -d)
       {
         p *= (r * r) / (p.x * p.x + p.z * p.z);
       }
@@ -113,16 +310,109 @@ public:
       if (p.x > d) p.x = d;
       if (p.x < -d) p.x = -d;
       if (p.z > d) p.z = d;
-      if (p.z < -d) p.z = -d;
+      if (p.z < -d)
+      {
+        if (p.x < -595) p.x = -595;
+        if (p.x > 595) p.x = 595;
 
-      i->setPosition(p);
+        //p.z = -d;
+      }
+
+      // Move to Next Scene
+      if (p.z < -38.0 * 35.0)
+      {
+        //Continuity::changeLevel = true;
+        setLevelForest();
+        p.z = 38.0 * 35.0 - 50;
+      }
+    }
+    else
+    {
+      p = mCharacter->getPosition();
+      r = 40.0 * 35.0;
+      Real d = 36.0 * 35.0;
+
+      // Square border
+      if (p.x < -d) p.x = -d;
+      if (p.x > d) p.x = d;
+      if (p.z < -d) p.z = -d;
+      if (p.z > d)
+      {
+        if (p.x < -595) p.x = -595;
+        if (p.x > 595) p.x = 595;
+      }
+
+      // Move to Next Scene
+      if (p.z > 38.0 * 35.0)
+      {
+        //Continuity::changeLevel = true;
+        setLevelTown();
+        p.z = -38.0 * 35.0 + 50;
+      }
     }
 
+
+    mCharacter->setPosition(p);
+
+    // Lock actives to edge position
+    if (mLevel == 0)
+    {
+      for (auto i : mActiveItems)
+      {
+        Vector3 p = i->getPosition();
+        r = 40.0 * 35.0;
+        Real d = 36.0 * 35.0;
+        // Circle border
+        if (p.x * p.x + p.z * p.z > r * r)
+        {
+          p *= (r * r) / (p.x * p.x + p.z * p.z);
+        }
+        // Square border
+        if (p.x > d) p.x = d;
+        if (p.x < -d) p.x = -d;
+        if (p.z > d) p.z = d;
+        if (p.z < -d) p.z = -d;
+
+        i->setPosition(p);
+      }
+    }
+    else
+    {
+      for (auto i : mActiveItems)
+      {
+        Vector3 p = i->getPosition();
+        r = 40.0 * 35.0;
+        Real d = 36.0 * 35.0;
+
+        // Square border
+        if (p.x > d) p.x = d;
+        if (p.x < -d) p.x = -d;
+        if (p.z > d) p.z = d;
+        if (p.z < -d) p.z = -d;
+
+        i->setPosition(p);
+      }
+    }
+
+    // Active item removal - delete and erase
+    for (auto i = mActiveItems.begin(); i != mActiveItems.end();)
+    {
+      if ((*i)->mRemove)
+      {
+        finalMoment(*i);
+        delete *i;
+        i = mActiveItems.erase(i);
+      }
+      else
+      {
+        ++i;
+      }
+    }
 
     // Update Camera
     //mCameraMan->getTarget()->setPosition(mCharacter->getPosition());
     float dist = 320 * 1.5;
-    float height = 420 * 1.5;
+    height = 420 * 1.5;
     mCamera->getParentNode()->setPosition(
       mCharacter->getPosition() +
       Vector3::UNIT_Z * dist  + Vector3::UNIT_Y * height
@@ -131,10 +421,92 @@ public:
     mCamera->getParentSceneNode()->lookAt(mCharacter->getPosition(), Node::TS_PARENT);
 
     // Mob
-    mChickenMob->update();
+    if (mLevel == 0) mChickenMob->update(mCharacter->getPosition());
+    else mValhallaMob->update(mCharacter->getPosition());
+
+    Continuity::characterPosition = mCharacter->getPosition();
+
+    // Stats
+    mStatsPanel.addTime(evt.timeSinceLastFrame);
+    if (mLevel == 0) StatsManager::addHP(4.2 * evt.timeSinceLastFrame);
 
     // SDK...
     return SdkSample::frameEnded(evt);
+  }
+
+
+  void finalMoment(ActiveItem* item)
+  {
+    if (item->classType() == "Gem2")
+    {
+      // Collect moon power
+      StatsManager::addMoon(10.01);
+
+      // Add blink decal
+      mBlinksToAdd.push_back(item->getPosition());
+      mBlinksToAddType.push_back(2);
+    }
+
+    if (item->classType() == "Gem1")
+    {
+      // Collect moon power
+      StatsManager::addHP(5);
+
+      // Add blink decal
+      mBlinksToAdd.push_back(item->getPosition());
+      mBlinksToAddType.push_back(1);
+    }
+
+    if (item->classType() == "Hen")
+    {
+      // Spawn Moon Gem
+      mGemsToAdd.push_back(item->getPosition());
+      mGemsToAddType.push_back(0);
+    }
+
+    if (item->classType() == "Skleton")
+    {
+      int i = rand() % 12;
+
+      if (i < 5)
+      {
+        mCoinsToAdd.push_back(item->getPosition());
+      }
+      else if (i < 7)
+      {
+        // Spawn Moon Gem
+        mGemsToAdd.push_back(item->getPosition());
+        mGemsToAddType.push_back(0);
+      }
+      else if (i == 8)
+      {
+        // Spawn Moon Gem
+        mGemsToAdd.push_back(item->getPosition());
+        mGemsToAddType.push_back(1);
+      }
+    }
+
+    if (item->classType() == "Slime")
+    {
+      int i = rand() % 12;
+
+      if (i < 5)
+      {
+        mCoinsToAdd.push_back(item->getPosition());
+      }
+      else if (i < 7)
+      {
+        // Spawn Moon Gem
+        mGemsToAdd.push_back(item->getPosition());
+        mGemsToAddType.push_back(0);
+      }
+      else if (i == 8)
+      {
+        // Spawn Moon Gem
+        mGemsToAdd.push_back(item->getPosition());
+        mGemsToAddType.push_back(1);
+      }
+    }
   }
 
 
@@ -158,6 +530,54 @@ public:
   }
 
 
+  bool mouseMoved(const MouseMotionEvent& evt)
+  {
+      // Relay input events to character controller.
+      if (!mTrayMgr->isDialogVisible()) mCharacter->injectMouseMove(evt);
+
+      m_mouseX = evt.x;
+      m_mouseY = evt.y;
+
+      return false;//SdkSample::mouseMoved(evt);
+  }
+
+
+  virtual bool mouseWheelRolled(const MouseWheelEvent& evt) {
+      // Relay input events to character controller.
+      if (!mTrayMgr->isDialogVisible()) mCharacter->injectMouseWheel(evt);
+      return SdkSample::mouseWheelRolled(evt);
+  }
+
+
+  bool mousePressed(const MouseButtonEvent& evt)
+  {
+      // Relay input events to character controller.
+      if (!mTrayMgr->isDialogVisible()) mCharacter->injectMouseDown(evt);
+
+      if (evt.button == BUTTON_LEFT) Continuity::onAttack();
+      if (evt.button == BUTTON_RIGHT) Continuity::onShoot();
+
+      // Action
+      //if (mSceneMgr)
+      if (evt.button == BUTTON_RIGHT)
+      {
+        if (StatsManager::moon > 10)
+        {
+          StatsManager::moon -= 10;
+
+          m_projectiles.push_back(
+            new Projectile(
+              mCamera->getSceneManager(),
+              mCharacter->getPosition(),
+              cursorPos )
+          );
+        }
+      }
+
+      return SdkSample::mousePressed(evt);
+  }
+
+
   //
   // Setup
   //
@@ -170,6 +590,12 @@ public:
     mMessageManager.setMessage("Press W, A, S, D to move");
     Continuity::s_messageManager = &mMessageManager;
 
+    mForestNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+    mTownNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+
+    m_coinScene = new CoinScene();
+    m_coinScene->init(mSceneMgr, mForestNode);
+
     setupLights();
     setupGround(); // Plane setup before shadows
     setupShadows();
@@ -178,8 +604,71 @@ public:
     setupActiveItems();
     setupDialogs();
 
+    mTownNode->setVisible(true);
+    mForestNode->setVisible(false);
+
     // Chicken Mob
-    mChickenMob = new ChickenMob(mSceneMgr, &mActiveItems);
+    mChickenMob = new ChickenMob(mSceneMgr, mTownNode, &mActiveItems);
+    mValhallaMob = new ValhallaMob(mSceneMgr, mForestNode, &mActiveItems);
+
+    //
+    mStatsPanel.init();
+  }
+
+
+  void setLevelTown()
+  {
+    mLevel = 0;
+    mTownNode->setVisible(true);
+    mForestNode->setVisible(false);
+
+    // Pop em
+    while (mActiveItems.size())
+    {
+      mActiveItemsStashForest.push_back(
+        mActiveItems.back()
+      );
+
+      mActiveItems.pop_back();
+    }
+
+    // Push em
+    while (mActiveItemsStashTown.size())
+    {
+      mActiveItems.push_back(
+        mActiveItemsStashTown.back()
+      );
+
+      mActiveItemsStashTown.pop_back();
+    }
+  }
+
+
+  void setLevelForest()
+  {
+    mLevel = 1;
+    mTownNode->setVisible(false);
+    mForestNode->setVisible(true);
+
+    // Pop em
+    while (mActiveItems.size())
+    {
+      mActiveItemsStashTown.push_back(
+        mActiveItems.back()
+      );
+
+      mActiveItems.pop_back();
+    }
+
+    // Push em
+    while (mActiveItemsStashForest.size())
+    {
+      mActiveItems.push_back(
+        mActiveItemsStashForest.back()
+      );
+
+      mActiveItemsStashForest.pop_back();
+    }
   }
 
 
@@ -227,7 +716,7 @@ public:
       {
         // Another node?
         SceneNode* node;
-        node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+        node = mTownNode->createChildSceneNode();
 
         // Floor plane (use POSM plane def)
         mPlane = new MovablePlane("*mPlane");
@@ -244,7 +733,7 @@ public:
         pPlaneEnt = mSceneMgr->createEntity( "plane", "Myplane" );
         pPlaneEnt->setMaterialName("Wolf/DirtBlend");
         pPlaneEnt->setCastShadows(false);
-        mSceneMgr->getRootSceneNode()->createChildSceneNode()->attachObject(pPlaneEnt);
+        node->attachObject(pPlaneEnt);
         mSceneMgr->setShadowTextureSettings(1024, 2);
         mSceneMgr->setShadowColour(ColourValue(0.5, 0.5, 0.5));
         //mSceneMgr->setShowDebugShadows(true);
@@ -280,6 +769,7 @@ public:
 
         npc = new ActiveNPC1(
           mSceneMgr,
+          mTownNode,
           Vector3(36.0 * -14.495739, 86.000000, 36.0 * -0.073246),
           "FemaleMage.mesh"
         );
@@ -287,6 +777,7 @@ public:
 
         npc = new ActiveNPC1(
           mSceneMgr,
+          mTownNode,
           Vector3(36.0 * -27.832264, 76.000000, 36.0 * -25.838675),
           "Berzerker.mesh"
         );
@@ -294,6 +785,7 @@ public:
 
         npc = new ActiveNPC1(
           mSceneMgr,
+          mTownNode,
           Vector3(36.0 * 0.135112, 86.000000, 36.0 * -34.888699),
           "Knight.mesh"
         );
@@ -301,6 +793,7 @@ public:
 
         npc = new ActiveNPC1(
           mSceneMgr,
+          mTownNode,
           Vector3(36.0 * 14.612830, 86.000000, 36.0 * -16.448574),
           "Mage.mesh"
         );
@@ -308,6 +801,7 @@ public:
 
         npc = new ActiveNPC1(
           mSceneMgr,
+          mTownNode,
           Vector3(36.0 * 9.378317, 86.000000, 36.0 * 17.837187),
           "Priest.mesh"
         );
@@ -417,11 +911,48 @@ public:
 
     }
 
+
     void setupScenery()
     {
       SceneNode* sn = 0;
-      SceneNode* root = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+
+      //
+      //  Forest Time
+      //
+
+      // create a floor mesh resource
+      MeshManager::getSingleton().createPlane("floor", ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
+          Plane(Vector3::UNIT_Y, 0),
+          1500 * 4, 1500 * 4,
+          50, 50,
+          true, 1,
+          5, 5,   // UV
+          Vector3::UNIT_Z);
+
+      Entity* floor = mSceneMgr->createEntity("Floor", "floor");
+      //floor->setMaterialName("Examples/Rockwall");
+      floor->setMaterialName("Wolf/ForestBlendX");
+      floor->setCastShadows(false);
+      mForestNode->attachObject(floor);
+
+      sn = mForestNode->createChildSceneNode(Vector3(0, 0, -4));
+      sn->setScale(Vector3(36));
+      sn->setOrientation(Quaternion(0, 0, 1, 0));
+      Entity*  a= mSceneMgr->createEntity("Arrow.mesh");
+      a->setCastShadows(false);
+      sn->attachObject(a);
+
+      //
+      // Town time
+      //
+
+      SceneNode* root = mTownNode->createChildSceneNode();
       root->setScale(Vector3(36));
+
+      sn = root->createChildSceneNode(Vector3(0, 0, -4));
+      Entity*  b= mSceneMgr->createEntity("Arrow.mesh");
+      b->setCastShadows(false);
+      sn->attachObject(b);
 
       // sn = root->createChildSceneNode(Vector3(-3.444748, 11.612431, -2.526091));
       // sn->setOrientation(Quaternion(1.000000, 0.000000, 0.000000, -0.000000));
@@ -431,6 +962,52 @@ public:
       sn->yaw(Degree(85.1));
       sn->setScale(Vector3(0.172));
       //sn->setScale(Vector3(0.100000, 0.100000, 0.100000));
+
+      sn = root->createChildSceneNode(Vector3(-28.5066, 0.53212, -32.5137));
+      sn->attachObject(mSceneMgr->createEntity("pot.mesh"));
+      sn = root->createChildSceneNode(Vector3(-28.5066, 1.28563, -32.5137));
+      sn->setScale(Vector3(0.445));
+      sn->attachObject(mSceneMgr->createEntity("potCap.mesh"));
+
+      sn = root->createChildSceneNode(Vector3(-30.1719, 0.40176, -30.7661));
+      sn->setScale(Vector3(0.739932));
+      sn->attachObject(mSceneMgr->createEntity("pot.mesh"));
+      sn = root->createChildSceneNode(Vector3(-30.1719, 0.959305, -30.7661));
+      sn->setScale(Vector3(0.329));
+      sn->attachObject(mSceneMgr->createEntity("potCap.mesh"));
+
+      sn = root->createChildSceneNode(Vector3(-32.3957, 0.40176, -31.5075));
+      sn->setScale(Vector3(0.739932));
+      sn->attachObject(mSceneMgr->createEntity("pot.mesh"));
+      sn = root->createChildSceneNode(Vector3(-32.3957, 0.959305, -31.5075));
+      sn->setScale(Vector3(0.329));
+      sn->attachObject(mSceneMgr->createEntity("potCap.mesh"));
+
+      sn = root->createChildSceneNode(Vector3(-30.5132, -0.115122, -24.4688));
+      sn->setScale(Vector3(0.739932));
+      sn->attachObject(mSceneMgr->createEntity("barrel2.mesh"));
+
+      sn = root->createChildSceneNode(Vector3(-28.3302, -0.115122, -20.1078));
+      sn->setScale(Vector3(0.739932));
+      sn->attachObject(mSceneMgr->createEntity("barrel2.mesh"));
+
+      sn = root->createChildSceneNode(Vector3(-22.352, -0.115122, 29.4283));
+      sn->setScale(Vector3(0.739932));
+      sn->attachObject(mSceneMgr->createEntity("barrel2.mesh"));
+
+      sn = root->createChildSceneNode(Vector3(-29.5747, -0.115122, 21.1244));
+      sn->setScale(Vector3(0.739932));
+      sn->attachObject(mSceneMgr->createEntity("barrel2.mesh"));
+
+      sn = root->createChildSceneNode(Vector3(33.44475, 0, 27.5));
+      sn->setOrientation(Quaternion(0.306582, 0.306582, 0.637187, -0.637187));
+      sn->setScale(Vector3(0.707170, 0.707170, 0.707170));
+      sn->attachObject(mSceneMgr->createEntity("prop_env_rock01_Plane.mesh"));
+
+      sn = root->createChildSceneNode(Vector3(33.44475, 0, 27.5));
+      sn->setOrientation(Quaternion(0.306582, 0.306582, 0.637187, -0.637187));
+      sn->setScale(Vector3(0.707170, 0.707170, 0.707170));
+      sn->attachObject(mSceneMgr->createEntity("prop_env_rock01_Plane.mesh"));
 
       // sn = root->createChildSceneNode(Vector3(-3.444748, 11.612430, -2.526085));
       // sn->setOrientation(Quaternion(1.000000, -0.000000, 0.000000, -0.000000));

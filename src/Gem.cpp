@@ -1,10 +1,10 @@
 #include "Gem.h"
 
 
-Gem::Gem(Ogre::SceneManager* scene, const Ogre::Vector3& position)
+Gem::Gem(Ogre::SceneManager* scene, Ogre::SceneNode* root, const Ogre::Vector3& position, int type)
 {
   m_scene = scene;
-  m_sceneNode = m_scene->getRootSceneNode()->createChildSceneNode(position);
+  m_sceneNode = root->createChildSceneNode(position);
   m_sceneNode->setScale(Ogre::Vector3(15));
   m_position = position;
   m_velocity = Ogre::Vector3(0, 8, 0);
@@ -12,13 +12,9 @@ Gem::Gem(Ogre::SceneManager* scene, const Ogre::Vector3& position)
   m_entity = m_scene->createEntity("Gem.mesh");
   m_sceneNode->attachObject(m_entity);
 
-  m_entity->setMaterialName("Orb1");
-
   Ogre::SceneNode* lsn = m_sceneNode->createChildSceneNode(Ogre::Vector3(0, 1, 0));
   Ogre::Light* light = m_scene->createLight();
   light->setType(Ogre::Light::LT_POINT);
-  light->setDiffuseColour(1.0, 0.3568627451, 0.30588235294);
-  light->setSpecularColour(1.0, 0.3568627451, 0.30588235294);
   light->setCastShadows(false);
   light->setAttenuation(
     15 * 100, // range
@@ -27,6 +23,23 @@ Gem::Gem(Ogre::SceneManager* scene, const Ogre::Vector3& position)
     0.021);// quadratic
   lsn->attachObject(light);
   m_light = light;
+
+  if (type == 1)
+  {
+    mClassType = "Gem1";
+
+    m_entity->setMaterialName("Orb1");
+    light->setDiffuseColour(1.0, 0.3568627451, 0.30588235294);
+    light->setSpecularColour(1.0, 0.3568627451, 0.30588235294);
+  }
+  else
+  {
+    mClassType = "Gem2";
+
+    m_entity->setMaterialName("Orb2");
+    light->setDiffuseColour(0.8862745098, 0.92941176471, 0.92941176471);
+    light->setSpecularColour(0.8862745098, 0.92941176471, 0.92941176471);
+  }
 }
 
 

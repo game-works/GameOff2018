@@ -13,8 +13,10 @@ CoinScene::~CoinScene()
 }
 
 
-void CoinScene::init(Ogre::SceneManager* sm)
+void CoinScene::init(Ogre::SceneManager* sm, Ogre::SceneNode* root)
 {
+  m_root = root;
+
   m_bulletScene = new BulletScene();
   m_bulletScene->init(); // duh
 
@@ -58,7 +60,7 @@ void CoinScene::createCoin(float x, float y, float z, int i)
     //const btVector4& color = btVector4(1, 0, 0, 1)
   );
 
-  node = m_sm->getRootSceneNode()->createChildSceneNode();
+  node = m_root->createChildSceneNode();
 
   Ogre::String coin_files[5] =
   {"Coin_1.mesh", "Coin_2.mesh", "Coin_3.mesh", "Coin_4.mesh", "Coin_5.mesh"};
@@ -106,7 +108,7 @@ void CoinScene::createCoin(Ogre::Vector3 p)
     Ogre::Math::RangeRandom(-1, 1)
   ));
 
-  node = m_sm->getRootSceneNode()->createChildSceneNode();
+  node = m_root->createChildSceneNode();
   node->setScale(Ogre::Vector3(10));
 
   Ogre::String coin_files[5] =

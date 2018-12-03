@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <iostream>
 #include "Tail.h"
+#include "StatsManager.h"
 
 
 using namespace Ogre;
@@ -47,6 +48,14 @@ private:
 
 public:
 
+  void hit(Real amt)
+  {
+    StatsManager::addHP(-amt);
+  }
+
+
+  bool mDamaging = false;
+
     AnimeCharacterController(Camera* cam) :
       mBaseAnimID(ANIM_NONE),
       mTopAnimID(ANIM_NONE)
@@ -65,7 +74,7 @@ public:
       mSwordsDrawn = false;
 
       m_tail = new Tail();
-      m_tail->init(mSceneMgr, this);
+      m_tail->init(mSceneMgr, mSceneMgr->getRootSceneNode(), this);
     }
 
 
@@ -137,10 +146,19 @@ public:
       if (mHybridTransform)
       {
         // dress Wolf
+        m_tail->hide();
+        dressWolf();
       }
       else
       {
+        m_tail->show();
         dressHuman();
+        mSwordsDrawn = false;
+        if (mSwordsDrawn == false)
+        {
+          mBodyEnt->attachObjectToBone("Sheath.L", mWeapon1);
+          mBodyEnt->attachObjectToBone("Sheath.R", mWeapon2);
+        }
       }
     }
 
@@ -161,7 +179,10 @@ public:
 
     void dressWolf()
     {
-      // Something?
+      mSwordsDrawn = true;
+      mBodyEnt->detachAllObjectsFromBone();
+      // mBodyEnt->attachObjectToBone("Sheath.L", mWeapon1);
+      // mBodyEnt->attachObjectToBone("Sheath.R", mWeapon2);
     }
 
 
@@ -169,11 +190,43 @@ public:
     {
         updateBody(deltaTime);
 
+        mTimer += deltaTime;
+
+        updateAnimations(deltaTime, mWolfAnims);
         updateAnimations(deltaTime, mHumanAnims);
         updateAnimations(deltaTime, mHumanClothesAnims);
-        updateAnimations(deltaTime, mWolfAnims);
 
         m_tail->update(deltaTime, this);
+
+        // Manage Moon Power
+        if (mHybridTransform)
+        {
+          StatsManager::wantsTransform = false;
+          float moonLoss = 10.0 * deltaTime;
+          if (StatsManager::moon > moonLoss)
+          {
+            StatsManager::moon -= moonLoss;
+          }
+          else
+          {
+            StatsManager::moon = 0;
+            hybridTransform();
+          }
+
+          StatsManager::addHP(8.0 * deltaTime);
+          StatsManager::hybrid = true;
+
+        }
+        else
+        {
+          StatsManager::hybrid = false;
+
+
+          if (StatsManager::wantsTransform)
+          {
+            hybridTransform();
+          }
+        }
     }
 
 
@@ -195,11 +248,11 @@ public:
         else if (key == 's') mKeyDirection.z = 1;
         else if (key == 'd') mKeyDirection.x = 1;
 
-        else if (key == 'z')
-        {
-            // HYBRID
-            hybridTransform();
-        }
+        // else if (key == 'z')
+        // {
+        //     // HYBRID
+        //     hybridTransform();
+        // }
 
         else if (key == SDLK_SPACE)
         {
@@ -208,8 +261,11 @@ public:
             // mTimer = 0;
 
             // Toggle Weapons
-            setTopAnimation(ANIM_DRAW_SWORDS, true);
-            mTimer = 0;
+            if (mHybridTransform == false)
+            {
+              setTopAnimation(ANIM_DRAW_SWORDS, true);
+              mTimer = 0;
+            }
         }
 
         if (!mKeyDirection.isZeroLength())
@@ -282,7 +338,7 @@ private:
         //mHumanNodeAtt->translate(0, -107, 0);
 
         mWolfNodeAtt = mBodyNode->createChildSceneNode(Vector3::UNIT_Y * CHAR_HEIGHT);
-        mWolfNodeAtt->setScale(Ogre::Vector3(30));
+        //mWolfNodeAtt->setScale(Ogre::Vector3(30));
         //mWolfNodeAtt->translate(0, -107, 0);
 
         mBodyNodeAtt = mHumanNodeAtt;
@@ -407,8 +463,6 @@ private:
       Real baseAnimSpeed = 1;
       Real topAnimSpeed = 1;
 
-      mTimer += deltaTime;
-
       //
       // Jump?
       //
@@ -441,7 +495,7 @@ private:
               mAnims[ANIM_HANDS_RELAXED]->setEnabled(mSwordsDrawn);
 
               // Hmmm... Re-apply armour items
-              if (mHybridTransform) ;
+              if (mHybridTransform) dressWolf();
               else dressHuman();
               // mBodyEnt->attachObjectToBone("Head", mArmourHead);
               // mBodyEnt->attachObjectToBone("Chest", mArmourChest);
@@ -475,6 +529,18 @@ private:
       }
       else if (mTopAnimID == ANIM_SLICE_VERTICAL || mTopAnimID == ANIM_SLICE_HORIZONTAL)
       {
+        // set damage
+        if (mTimer >= 0.25 * mAnims[mTopAnimID]->getLength() &&
+            mTimer < 0.75 * mAnims[mTopAnimID]->getLength())
+        {
+          mDamaging = true;
+        }
+        else
+        {
+          mDamaging = false;
+        }
+
+        // reset anim
           if (mTimer >= mAnims[mTopAnimID]->getLength())
           {
               // animation is finished, so return to what we were doing before
@@ -619,11 +685,11 @@ private:
 
     SceneManager* mSceneMgr = 0;    // Added
 
-    bool mHybridTransform = false;
 
     Tail* m_tail;
 
 public:
+    bool mHybridTransform = false;
     btRigidBody* mCharacterBody;
 };
 
